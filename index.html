@@ -61,7 +61,6 @@
             const [files, setFiles] = useState({
                 birthCert: null, idCardDoc: null, houseReg: null, photo: null, transcript: null
             });
-            const [viewMode, setViewMode] = useState('user'); // 'user' or 'admin'
 
             const handleInputChange = (e) => {
                 const { name, value } = e.target;
@@ -115,154 +114,6 @@
                 setIsLoading(false);
             };
 
-            // Step 2 -> 3 Transition
-            const validateStep2 = (e) => {
-                e.preventDefault();
-                const gpa = parseFloat(formData.gpa);
-                if (isNaN(gpa) || gpa < 1.00 || gpa > 4.00) {
-                    alert("กรุณาระบุเกรดเฉลี่ยระหว่าง 1.00 - 4.00");
-                    return;
-                }
-                if (window.confirm("กรุณาตรวจสอบข้อมูลของท่านให้เรียบร้อยก่อนทำการยืนยันข้อมูล\n\nยืนยันที่จะไปยังขั้นตอนอัพโหลดเอกสารใช่หรือไม่?")) {
-                    setStep(3);
-                }
-            };
-
-            // Step 3 -> Submit
-            const submitApplication = async (e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                
-                const payload = {
-                    action: 'submit_application',
-                    ...formData,
-                    files: files
-                };
-
-                try {
-                    const response = await fetch(GAS_WEBAPP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    
-                    if (result.status === 'success') {
-                        setStep(4);
-                    } else {
-                        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + result.message);
-                    }
-                } catch (error) {
-                    console.error("Submit Error", error);
-                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
-                }
-                setIsLoading(false);
-            };
-
-            // Component: Admin View
-            const AdminPanel = () => {
-                const [password, setPassword] = useState('');
-                const [isAuthenticated, setIsAuthenticated] = useState(false);
-                const [activeTab, setActiveTab] = useState('ม.1');
-                const [students, setStudents] = useState([]);
-                const [loadingAdmin, setLoadingAdmin] = useState(false);
-
-                const login = (e) => {
-                    e.preventDefault();
-                    if (password === '640551') {
-                        setIsAuthenticated(true);
-                        fetchStudents();
-                    } else {
-                        alert('รหัสผ่านไม่ถูกต้อง');
-                    }
-                };
-
-                const fetchStudents = async () => {
-                    setLoadingAdmin(true);
-                    try {
-                        const response = await fetch(`${GAS_WEBAPP_URL}?action=get_all`);
-                        const result = await response.json();
-                        if(result.status === 'success') {
-                            setStudents(result.data);
-                        }
-                    } catch (e) {
-                        console.log(e);
-                        alert("เกิดข้อผิดพลาดในการดึงข้อมูลจากระบบ");
-                    }
-                    setLoadingAdmin(false);
-                };
-
-                if (!isAuthenticated) {
-                    return (
-                        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-                            <form onSubmit={login} className="bg-white p-8 rounded-lg shadow-lg w-96">
-                                <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">ผู้ดูแลระบบ</h2>
-                                <input type="password" placeholder="รหัสผ่าน" value={password} onChange={e=>setPassword(e.target.value)}
-                                    className="w-full p-3 border rounded mb-4 focus:outline-none focus:border-blue-500" required/>
-                                <button type="submit" className="w-full bg-gray-800 text-white p-3 rounded hover:bg-gray-900 transition">เข้าสู่ระบบ</button>
-                                <button type="button" onClick={() => setViewMode('user')} className="w-full mt-2 text-gray-500 underline text-sm">กลับหน้าหลัก</button>
-                            </form>
-                        </div>
-                    );
-                }
-
-                const filteredStudents = students.filter(s => s.Level === activeTab);
-
-                return (
-                    <div className="min-h-screen bg-gray-50 p-6">
-                        <div className="max-w-6xl mx-auto">
-                            <div className="flex justify-between items-center mb-6">
-                                <h1 className="text-2xl font-bold text-gray-800"><i className="fas fa-users-cog mr-2"></i> ระบบจัดการผู้สมัคร</h1>
-                                <button onClick={() => setViewMode('user')} className="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600">ออกจากระบบ</button>
-                            </div>
-
-                            <div className="bg-white rounded-lg shadow overflow-hidden">
-                                <div className="flex border-b">
-                                    <button onClick={()=>setActiveTab('ม.1')} className={`flex-1 py-4 font-semibold text-lg ${activeTab==='ม.1' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-500' : 'text-gray-500 hover:bg-gray-50'}`}>สมัคร ม.1</button>
-                                    <button onClick={()=>setActiveTab('ม.4')} className={`flex-1 py-4 font-semibold text-lg ${activeTab==='ม.4' ? 'bg-pink-50 text-pink-600 border-b-2 border-pink-500' : 'text-gray-500 hover:bg-gray-50'}`}>สมัคร ม.4</button>
-                                </div>
-                                
-                                <div className="p-6 overflow-x-auto">
-                                    {loadingAdmin ? <p className="text-center py-10"><i className="fas fa-spinner fa-spin text-3xl text-gray-400"></i></p> : 
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-gray-100 text-gray-700">
-                                                <th className="p-3 border-b">วันที่สมัคร</th>
-                                                <th className="p-3 border-b">เลขบัตรประชาชน</th>
-                                                <th className="p-3 border-b">ชื่อ-นามสกุล</th>
-                                                <th className="p-3 border-b">สถานะเอกสาร</th>
-                                                <th className="p-3 border-b text-center">จัดการ</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredStudents.length === 0 ? 
-                                                <tr><td colSpan="5" className="text-center p-6 text-gray-500">ไม่มีข้อมูล</td></tr> : 
-                                                filteredStudents.map((s, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 border-b">
-                                                    <td className="p-3">{new Date(s.Timestamp).toLocaleDateString('th-TH')}</td>
-                                                    <td className="p-3">{s['ID Card']}</td>
-                                                    <td className="p-3">{s.Firstname} {s.Lastname}</td>
-                                                    <td className="p-3"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">รอตรวจสอบ</span></td>
-                                                    <td className="p-3 text-center">
-                                                        <a href={s['Folder URL']} target="_blank" className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition">
-                                                            <i className="fas fa-folder-open mr-1"></i> ดูเอกสาร
-                                                        </a>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            // Main Render
-            if (viewMode === 'admin') {
-            // Component: Admin View - ถูกลบออกไปแยกเป็นไฟล์ admin.html
-
             // Main Render
             return (
                 <div>
@@ -274,6 +125,33 @@
                                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                         <i className="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
                                     </div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">ไม่พบข้อมูลท่าน</h3>
+                                    <p className="text-gray-600 text-sm">ยังไม่มีข้อมูลการสมัครของท่านในระบบ ต้องการทำรายการสมัครเรียนใหม่ตอนนี้เลยหรือไม่?</p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setShowNotFoundPopup(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
+                                        ยกเลิก
+                                    </button>
+                                    <button onClick={() => { setShowNotFoundPopup(false); setStep(2); }} className="flex-1 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium shadow-md">
+                                        สมัครเรียน
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Header (No Print) */}
+                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 shadow-md text-white py-6 px-4 no-print">
+                        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white p-2 rounded-full shadow-lg">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Seal_of_the_Ministry_of_Education_of_Thailand.svg/120px-Seal_of_the_Ministry_of_Education_of_Thailand.svg.png" alt="Logo" className="w-12 h-12 object-contain" />
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl md:text-3xl font-bold tracking-wide">ระบบรับสมัครนักเรียน ออนไลน์</h1>
+                                    <p className="text-cyan-100 text-sm md:text-base mt-1">โรงเรียนปากแพรกวิทยาคม ปีการศึกษา 2568</p>
+                                </div>
+                            </div>
                             <a href="admin.html" className="text-sm bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full backdrop-blur transition border border-white/50 text-white no-underline inline-block mt-4 md:mt-0">
                                 <i className="fas fa-lock mr-2"></i>ส่วนของผู้ดูแล
                             </a>
