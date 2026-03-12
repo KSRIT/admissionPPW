@@ -49,6 +49,7 @@
 
         const App = () => {
             const [step, setStep] = useState(1);
+            const [showNotFoundPopup, setShowNotFoundPopup] = useState(false);
             const [isLoading, setIsLoading] = useState(false);
             const [formData, setFormData] = useState({
                 idCard: '', dob: '', level: 'ม.1',
@@ -91,16 +92,6 @@
                 e.preventDefault();
                 setIsLoading(true);
                 try {
-                    // จำลองการตรวจสอบ (เนื่องจากยังไม่มี GAS URL จริงในระบบตัวอย่าง)
-                    if(GAS_WEBAPP_URL === "https://script.google.com/macros/s/AKfycbysA9t7bYvlDlOwBb-6vJCi7HbGrGoWaylKNzT63qrzTNgfcyBIf5eSS4vZd-s33lNq/exec") {
-                        setTimeout(() => {
-                            setIsLoading(false);
-                            // จำลองว่าไม่พบข้อมูล ให้ไปต่อ step 2
-                            setStep(2);
-                        }, 1000);
-                        return;
-                    }
-
                     const response = await fetch(GAS_WEBAPP_URL, {
                         method: 'POST',
                         body: JSON.stringify({ action: 'check_student', idCard: formData.idCard, dob: formData.dob })
@@ -111,12 +102,12 @@
                         setFormData(result.data); // Load existing data
                         setStep(4); // Go to display page
                     } else {
-                        setStep(2); // Go to register page
+                        // ไม่พบข้อมูล ให้แสดง Pop-up
+                        setShowNotFoundPopup(true);
                     }
                 } catch (error) {
                     console.error("Error checking data", error);
-                    alert("ไม่สามารถเชื่อมต่อระบบได้ จะดำเนินการไปขั้นตอนต่อไปชั่วคราว");
-                    setStep(2);
+                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง");
                 }
                 setIsLoading(false);
             };
@@ -146,14 +137,6 @@
                 };
 
                 try {
-                    if(GAS_WEBAPP_URL === "https://script.google.com/macros/s/AKfycbysA9t7bYvlDlOwBb-6vJCi7HbGrGoWaylKNzT63qrzTNgfcyBIf5eSS4vZd-s33lNq/exec") {
-                        setTimeout(() => {
-                            setIsLoading(false);
-                            setStep(4);
-                        }, 1500);
-                        return;
-                    }
-
                     const response = await fetch(GAS_WEBAPP_URL, {
                         method: 'POST',
                         body: JSON.stringify(payload)
@@ -167,8 +150,7 @@
                     }
                 } catch (error) {
                     console.error("Submit Error", error);
-                    alert("บันทึกข้อมูลสำเร็จ (โหมดจำลอง)");
-                    setStep(4);
+                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
                 }
                 setIsLoading(false);
             };
@@ -193,18 +175,6 @@
 
                 const fetchStudents = async () => {
                     setLoadingAdmin(true);
-                    if(GAS_WEBAPP_URL === "https://script.google.com/macros/s/AKfycbysA9t7bYvlDlOwBb-6vJCi7HbGrGoWaylKNzT63qrzTNgfcyBIf5eSS4vZd-s33lNq/exec") {
-                         // Mock Data
-                         setTimeout(() => {
-                             setStudents([
-                                 { Timestamp: '11/03/2026', Level: 'ม.1', Firstname: 'สมชาย', Lastname: 'ใจดี', 'ID Card': '1103700000000', 'Folder URL': '#' },
-                                 { Timestamp: '11/03/2026', Level: 'ม.4', Firstname: 'สมหญิง', Lastname: 'รักเรียน', 'ID Card': '1103700000001', 'Folder URL': '#' }
-                             ]);
-                             setLoadingAdmin(false);
-                         }, 1000);
-                         return;
-                    }
-
                     try {
                         const response = await fetch(`${GAS_WEBAPP_URL}?action=get_all`);
                         const result = await response.json();
@@ -213,6 +183,7 @@
                         }
                     } catch (e) {
                         console.log(e);
+                        alert("เกิดข้อผิดพลาดในการดึงข้อมูลจากระบบ");
                     }
                     setLoadingAdmin(false);
                 };
@@ -292,6 +263,29 @@
 
             return (
                 <div>
+                    {/* Not Found Popup */}
+                    {showNotFoundPopup && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in-up">
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i className="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">ไม่พบข้อมูลท่าน</h3>
+                                    <p className="text-gray-600 text-sm">ยังไม่มีข้อมูลการสมัครของท่านในระบบ ต้องการทำรายการสมัครเรียนใหม่ตอนนี้เลยหรือไม่?</p>
+                                </div>
+                                <div className="flex gap-4">
+                                    <button onClick={() => setShowNotFoundPopup(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
+                                        ยกเลิก
+                                    </button>
+                                    <button onClick={() => { setShowNotFoundPopup(false); setStep(2); }} className="flex-1 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium shadow-md">
+                                        สมัครเรียน
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Header (No Print) */}
                     <div className="bg-gradient-to-r from-cyan-500 to-blue-500 shadow-md text-white py-6 px-4 no-print">
                         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between">
