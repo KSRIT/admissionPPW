@@ -45,6 +45,46 @@
         
         const { useState, useEffect } = React;
 
+        // คอมโพเนนต์สำหรับแสดงช่องอัพโหลดและตัวอย่างรูป (ย้ายออกมานอก App เพื่อป้องกัน input รีเซ็ตตัวเอง)
+        const FileUploadBox = ({ label, name, required, isEditing, filesState, onChange }) => {
+            const fileData = filesState[name];
+            // ยกเลิกการบังคับ require ที่ HTML input หากมีไฟล์อยู่ใน State แล้ว
+            const isInputRequired = !isEditing && required && !fileData;
+            
+            return (
+                <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 shadow-sm transition hover:border-indigo-300 hover:shadow-md relative">
+                    <label className="block font-semibold mb-2 text-gray-700">
+                        {label} {(!isEditing && required) && <span className="text-red-500">*</span>}
+                    </label>
+                    <input 
+                        type="file" 
+                        name={name} 
+                        onChange={onChange} 
+                        required={isInputRequired} 
+                        accept={name === 'photo' ? "image/*" : "image/*,.pdf"} 
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" 
+                    />
+                    
+                    {/* แสดงตัวอย่างภาพ */}
+                    {fileData && (
+                        <div className="mt-4 border rounded-lg overflow-hidden bg-white p-2">
+                            {fileData.mimeType.startsWith('image/') ? (
+                                <div className="relative">
+                                    <img src={fileData.previewUrl} alt="Preview" className="w-full h-32 object-contain rounded" />
+                                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg">อัพโหลดแล้ว</div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center p-4 bg-red-50 text-red-700 rounded-lg">
+                                    <i className="fas fa-file-pdf text-3xl mr-3"></i>
+                                    <span className="text-sm font-medium truncate">{fileData.fileName}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const App = () => {
             const [step, setStep] = useState(1);
             const [showNotFoundPopup, setShowNotFoundPopup] = useState(false);
@@ -113,77 +153,6 @@
                     alert("เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง");
                 }
                 setIsLoading(false);
-            };
-
-            const validateStep2 = (e) => {
-                e.preventDefault();
-                setStep(3);
-            };
-
-            const submitApplication = async (e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                
-                const payload = {
-                    action: 'submit_application',
-                    ...formData,
-                    files: files
-                };
-
-                try {
-                    const response = await fetch(GAS_WEBAPP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    
-                    if (result.status === 'success') {
-                        setStep(4);
-                    } else {
-                        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + result.message);
-                    }
-                } catch (error) {
-                    console.error("Submit Error", error);
-                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
-                }
-                setIsLoading(false);
-            };
-
-            // คอมโพเนนต์สำหรับแสดงช่องอัพโหลดและตัวอย่างรูป
-            const FileUploadBox = ({ label, name, required, isEditing, filesState }) => {
-                const fileData = filesState[name];
-                return (
-                    <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 shadow-sm transition hover:border-indigo-300 hover:shadow-md relative">
-                        <label className="block font-semibold mb-2 text-gray-700">
-                            {label} {(!isEditing && required) && <span className="text-red-500">*</span>}
-                        </label>
-                        <input 
-                            type="file" 
-                            name={name} 
-                            onChange={handleFileChange} 
-                            required={!isEditing && required} 
-                            accept={name === 'photo' ? "image/*" : "image/*,.pdf"} 
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" 
-                        />
-                        
-                        {/* แสดงตัวอย่างภาพ */}
-                        {fileData && (
-                            <div className="mt-4 border rounded-lg overflow-hidden bg-white p-2">
-                                {fileData.mimeType.startsWith('image/') ? (
-                                    <div className="relative">
-                                        <img src={fileData.previewUrl} alt="Preview" className="w-full h-32 object-contain rounded" />
-                                        <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg">อัพโหลดแล้ว</div>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-center p-4 bg-red-50 text-red-700 rounded-lg">
-                                        <i className="fas fa-file-pdf text-3xl mr-3"></i>
-                                        <span className="text-sm font-medium truncate">{fileData.fileName}</span>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
             };
 
             return (
@@ -385,12 +354,12 @@
                                     
                                     <form onSubmit={submitApplication} className="space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <FileUploadBox label="สำเนาสูติบัตร" name="birthCert" required={true} isEditing={isEditing} filesState={files} />
-                                            <FileUploadBox label="บัตรประชาชน (นักเรียน)" name="idCardDoc" required={true} isEditing={isEditing} filesState={files} />
-                                            <FileUploadBox label="สำเนาทะเบียนบ้าน (นร./บิดา/มารดา)" name="houseReg" required={true} isEditing={isEditing} filesState={files} />
-                                            <FileUploadBox label="รูปถ่ายหน้าตรง ขนาด 1.5 นิ้ว" name="photo" required={true} isEditing={isEditing} filesState={files} />
+                                            <FileUploadBox label="สำเนาสูติบัตร" name="birthCert" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
+                                            <FileUploadBox label="บัตรประชาชน (นักเรียน)" name="idCardDoc" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
+                                            <FileUploadBox label="สำเนาทะเบียนบ้าน (นร./บิดา/มารดา)" name="houseReg" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
+                                            <FileUploadBox label="รูปถ่ายหน้าตรง ขนาด 1.5 นิ้ว" name="photo" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
                                             <div className="md:col-span-2">
-                                                <FileUploadBox label="ใบ ปพ.1 หรือ เอกสารรับรอง" name="transcript" required={true} isEditing={isEditing} filesState={files} />
+                                                <FileUploadBox label="ใบ ปพ.1 หรือ เอกสารรับรอง" name="transcript" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
                                             </div>
                                         </div>
 
