@@ -13,19 +13,17 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Sarabun (Official Thai Font) -->
+    <!-- Google Fonts: Sarabun -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f0fdfa; }
-        /* Custom Colors based on request (Blue, Pink, White) */
         .bg-theme-blue { background-color: #0ea5e9; }
         .text-theme-blue { color: #0ea5e9; }
         .bg-theme-pink { background-color: #ec4899; }
         .text-theme-pink { color: #ec4899; }
         .border-theme-pink { border-color: #ec4899; }
         
-        /* Print Styles */
         @media print {
             body { background-color: white; }
             .no-print { display: none !important; }
@@ -41,7 +39,7 @@
 
     <script type="text/babel">
         // ==========================================
-        // ตั้งค่า URL ของ Google Apps Script ที่ Deploy แล้ว
+        // ตั้งค่า URL ของ Google Apps Script ที่ Deploy แล้ว (อันใหม่ล่าสุด)
         // ==========================================
         const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysA9t7bYvlDlOwBb-6vJCi7HbGrGoWaylKNzT63qrzTNgfcyBIf5eSS4vZd-s33lNq/exec"; 
         
@@ -51,7 +49,7 @@
             const [step, setStep] = useState(1);
             const [showNotFoundPopup, setShowNotFoundPopup] = useState(false);
             const [isLoading, setIsLoading] = useState(false);
-            const [isEditing, setIsEditing] = useState(false); // เช็คว่าเป็นโหมดแก้ไขข้อมูลหรือไม่
+            const [isEditing, setIsEditing] = useState(false);
             const [formData, setFormData] = useState({
                 idCard: '', dob: '', level: 'ม.1',
                 prefix: '', firstname: '', lastname: '', gender: '', nationality: 'ไทย', religion: 'พุทธ', talent: '', disability: '',
@@ -71,6 +69,8 @@
                 const { name, files: selectedFiles } = e.target;
                 if (selectedFiles.length > 0) {
                     const file = selectedFiles[0];
+                    const previewUrl = URL.createObjectURL(file); // สร้าง URL สำหรับแสดงตัวอย่าง
+                    
                     const reader = new FileReader();
                     reader.onloadend = () => {
                         const base64String = reader.result.split(',')[1];
@@ -79,7 +79,9 @@
                             [name]: {
                                 base64: base64String,
                                 mimeType: file.type,
-                                extension: file.name.split('.').pop()
+                                extension: file.name.split('.').pop(),
+                                previewUrl: previewUrl, // เก็บ URL ตัวอย่างภาพ
+                                fileName: file.name
                             }
                         }));
                     };
@@ -87,7 +89,6 @@
                 }
             };
 
-            // Step 1: Check Data
             const checkData = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
@@ -99,12 +100,11 @@
                     const result = await response.json();
                     
                     if (result.status === 'found') {
-                        setFormData(result.data); // Load existing data
-                        setIsEditing(true); // ตั้งค่าว่าเป็นโหมดแก้ไข
-                        setStep(2); // เปลี่ยนจากหน้า 4 ให้มาหน้า 2 เพื่อแสดงข้อมูลให้แก้ไข
+                        setFormData(result.data);
+                        setIsEditing(true);
+                        setStep(2);
                         alert("พบข้อมูลในระบบ ท่านสามารถตรวจสอบและแก้ไขข้อมูลของท่านได้");
                     } else {
-                        // ไม่พบข้อมูล ให้แสดง Pop-up
                         setShowNotFoundPopup(true);
                         setIsEditing(false);
                     }
@@ -115,14 +115,11 @@
                 setIsLoading(false);
             };
 
-            // Step 2 -> 3 Transition
             const validateStep2 = (e) => {
                 e.preventDefault();
-                // ไปยังขั้นตอนที่ 3 (การทำ Validation ดักด้วย required ใน tag html แล้ว)
                 setStep(3);
             };
 
-            // Step 3 -> Submit
             const submitApplication = async (e) => {
                 e.preventDefault();
                 setIsLoading(true);
@@ -141,7 +138,7 @@
                     const result = await response.json();
                     
                     if (result.status === 'success') {
-                        setStep(4); // ไปหน้าปริ้น
+                        setStep(4);
                     } else {
                         alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + result.message);
                     }
@@ -152,10 +149,45 @@
                 setIsLoading(false);
             };
 
-            // Main Render
+            // คอมโพเนนต์สำหรับแสดงช่องอัพโหลดและตัวอย่างรูป
+            const FileUploadBox = ({ label, name, required, isEditing, filesState }) => {
+                const fileData = filesState[name];
+                return (
+                    <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 shadow-sm transition hover:border-indigo-300 hover:shadow-md relative">
+                        <label className="block font-semibold mb-2 text-gray-700">
+                            {label} {(!isEditing && required) && <span className="text-red-500">*</span>}
+                        </label>
+                        <input 
+                            type="file" 
+                            name={name} 
+                            onChange={handleFileChange} 
+                            required={!isEditing && required} 
+                            accept={name === 'photo' ? "image/*" : "image/*,.pdf"} 
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" 
+                        />
+                        
+                        {/* แสดงตัวอย่างภาพ */}
+                        {fileData && (
+                            <div className="mt-4 border rounded-lg overflow-hidden bg-white p-2">
+                                {fileData.mimeType.startsWith('image/') ? (
+                                    <div className="relative">
+                                        <img src={fileData.previewUrl} alt="Preview" className="w-full h-32 object-contain rounded" />
+                                        <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg">อัพโหลดแล้ว</div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center p-4 bg-red-50 text-red-700 rounded-lg">
+                                        <i className="fas fa-file-pdf text-3xl mr-3"></i>
+                                        <span className="text-sm font-medium truncate">{fileData.fileName}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
             return (
                 <div>
-                    {/* Not Found Popup */}
                     {showNotFoundPopup && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in-up">
@@ -167,18 +199,13 @@
                                     <p className="text-gray-600 text-sm">ยังไม่มีข้อมูลการสมัครของท่านในระบบ ต้องการทำรายการสมัครเรียนใหม่ตอนนี้เลยหรือไม่?</p>
                                 </div>
                                 <div className="flex gap-4">
-                                    <button onClick={() => setShowNotFoundPopup(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">
-                                        ยกเลิก
-                                    </button>
-                                    <button onClick={() => { setShowNotFoundPopup(false); setStep(2); }} className="flex-1 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium shadow-md">
-                                        สมัครเรียน
-                                    </button>
+                                    <button onClick={() => setShowNotFoundPopup(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">ยกเลิก</button>
+                                    <button onClick={() => { setShowNotFoundPopup(false); setStep(2); }} className="flex-1 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium shadow-md">สมัครเรียน</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Header (No Print) */}
                     <div className="bg-gradient-to-r from-cyan-500 to-blue-500 shadow-md text-white py-6 px-4 no-print">
                         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
                             <div className="flex items-center gap-4">
@@ -196,7 +223,6 @@
                         </div>
                     </div>
 
-                    {/* Progress Bar (No Print) */}
                     {step < 4 && (
                         <div className="max-w-4xl mx-auto pt-8 px-4 no-print">
                             <div className="flex items-center justify-between relative">
@@ -217,10 +243,8 @@
                         </div>
                     )}
 
-                    {/* Main Content Area */}
                     <div className="max-w-4xl mx-auto p-4 py-8">
                         
-                        {/* STEP 1: Verification */}
                         {step === 1 && (
                             <div className="bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in-up border-t-4 border-theme-blue">
                                 <div className="p-8">
@@ -229,7 +253,7 @@
                                         <div>
                                             <label className="block text-gray-700 font-semibold mb-2">เลขประจำตัวประชาชน (13 หลัก) <span className="text-red-500">*</span></label>
                                             <input type="text" name="idCard" value={formData.idCard} onChange={handleInputChange} maxLength="13" required pattern="\d{13}" title="กรุณากรอกตัวเลข 13 หลัก"
-                                                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-lg tracking-widest" placeholder="x-xxxx-xxxxx-xx-x" />
+                                                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-lg tracking-widest text-center" placeholder="x-xxxx-xxxxx-xx-x" />
                                         </div>
                                         <button type="submit" disabled={isLoading} className={`w-full py-4 rounded-lg text-white font-bold text-lg shadow-lg transition-all ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 hover:-translate-y-1'}`}>
                                             {isLoading ? <><i className="fas fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบข้อมูล...</> : <><i className="fas fa-search mr-2"></i>ตรวจสอบข้อมูล / เข้าสู่ระบบ</>}
@@ -239,7 +263,6 @@
                             </div>
                         )}
 
-                        {/* STEP 2: Personal Info */}
                         {step === 2 && (
                             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-theme-pink">
                                 <div className="p-8">
@@ -248,7 +271,6 @@
                                         {isEditing && <span className="text-sm font-normal text-blue-700 bg-blue-100 px-3 py-1 rounded-full"><i className="fas fa-info-circle mr-1"></i> โหมดแก้ไขข้อมูล</span>}
                                     </h2>
                                     <form onSubmit={validateStep2}>
-                                        
                                         <div className="mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
                                             <h3 className="font-bold text-blue-800 mb-4 text-lg">ระดับชั้นที่ต้องการสมัคร</h3>
                                             <div className="flex gap-6">
@@ -349,49 +371,33 @@
                             </div>
                         )}
 
-                        {/* STEP 3: File Uploads */}
                         {step === 3 && (
                             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-indigo-500">
                                 <div className="p-8">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4"><i className="fas fa-file-upload text-indigo-500 mr-2"></i> ขั้นตอนที่ 3: อัพโหลดเอกสาร</h2>
-                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6 text-sm text-yellow-800">
-                                        <i className="fas fa-info-circle mr-2"></i> กรุณาเตรียมไฟล์ภาพ (JPG, PNG) หรือ PDF ขนาดไม่เกินไฟล์ละ 2MB
+                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6 text-sm text-yellow-800 flex items-center">
+                                        <i className="fas fa-info-circle mr-3 text-xl"></i> 
+                                        <div>
+                                            <strong>กรุณาเตรียมไฟล์ภาพ (JPG, PNG) หรือ PDF</strong><br/>
+                                            ขนาดไม่เกินไฟล์ละ 2MB หากท่านอยู่ในโหมดแก้ไขข้อมูล ไม่จำเป็นต้องอัพโหลดใหม่หากใช้ไฟล์เดิม
+                                        </div>
                                     </div>
+                                    
                                     <form onSubmit={submitApplication} className="space-y-6">
-                                        
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="border p-4 rounded-lg bg-gray-50">
-                                                <label className="block font-semibold mb-2">สำเนาสูติบัตร {isEditing ? '' : <span className="text-red-500">*</span>}</label>
-                                                <input type="file" name="birthCert" onChange={handleFileChange} required={!isEditing} accept="image/*,.pdf" className="w-full text-sm" />
-                                            </div>
-                                            <div className="border p-4 rounded-lg bg-gray-50">
-                                                <label className="block font-semibold mb-2">บัตรประชาชน (นักเรียน) {isEditing ? '' : <span className="text-red-500">*</span>}</label>
-                                                <input type="file" name="idCardDoc" onChange={handleFileChange} required={!isEditing} accept="image/*,.pdf" className="w-full text-sm" />
-                                            </div>
-                                            <div className="border p-4 rounded-lg bg-gray-50">
-                                                <label className="block font-semibold mb-2">สำเนาทะเบียนบ้าน (นร./บิดา/มารดา) {isEditing ? '' : <span className="text-red-500">*</span>}</label>
-                                                <input type="file" name="houseReg" onChange={handleFileChange} required={!isEditing} accept="image/*,.pdf" className="w-full text-sm" />
-                                            </div>
-                                            <div className="border p-4 rounded-lg bg-gray-50">
-                                                <label className="block font-semibold mb-2">รูปถ่ายหน้าตรง ขนาด 1.5 นิ้ว {isEditing ? '' : <span className="text-red-500">*</span>}</label>
-                                                <input type="file" name="photo" onChange={handleFileChange} required={!isEditing} accept="image/*" className="w-full text-sm" />
-                                            </div>
-                                            <div className="border p-4 rounded-lg bg-gray-50 md:col-span-2">
-                                                <label className="block font-semibold mb-2">ใบ ปพ.1 หรือ เอกสารรับรอง {isEditing ? '' : <span className="text-red-500">*</span>}</label>
-                                                <input type="file" name="transcript" onChange={handleFileChange} required={!isEditing} accept="image/*,.pdf" className="w-full text-sm" />
+                                            <FileUploadBox label="สำเนาสูติบัตร" name="birthCert" required={true} isEditing={isEditing} filesState={files} />
+                                            <FileUploadBox label="บัตรประชาชน (นักเรียน)" name="idCardDoc" required={true} isEditing={isEditing} filesState={files} />
+                                            <FileUploadBox label="สำเนาทะเบียนบ้าน (นร./บิดา/มารดา)" name="houseReg" required={true} isEditing={isEditing} filesState={files} />
+                                            <FileUploadBox label="รูปถ่ายหน้าตรง ขนาด 1.5 นิ้ว" name="photo" required={true} isEditing={isEditing} filesState={files} />
+                                            <div className="md:col-span-2">
+                                                <FileUploadBox label="ใบ ปพ.1 หรือ เอกสารรับรอง" name="transcript" required={true} isEditing={isEditing} filesState={files} />
                                             </div>
                                         </div>
-
-                                        {isEditing && (
-                                            <div className="text-sm text-gray-500 mt-2">
-                                                * ท่านอยู่ในโหมดแก้ไขข้อมูล หากไม่ต้องการเปลี่ยนเอกสารเดิม ไม่จำเป็นต้องอัพโหลดไฟล์ใหม่
-                                            </div>
-                                        )}
 
                                         <div className="flex gap-4 mt-8 pt-6 border-t">
                                             <button type="button" onClick={() => setStep(2)} disabled={isLoading} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">ย้อนกลับ</button>
                                             <button type="submit" disabled={isLoading} className={`flex-1 py-3 text-white rounded-lg font-bold shadow-lg text-lg transition ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
-                                                {isLoading ? <><i className="fas fa-spinner fa-spin mr-2"></i>กำลังบันทึกข้อมูลและอัพโหลดไฟล์...</> : <><i className="fas fa-save mr-2"></i>บันทึกข้อมูลและสมัครเรียน</>}
+                                                {isLoading ? <><i className="fas fa-spinner fa-spin mr-2"></i>กำลังบันทึกและสร้างโฟลเดอร์เอกสาร...</> : <><i className="fas fa-save mr-2"></i>บันทึกข้อมูลและอัพโหลดไฟล์</>}
                                             </button>
                                         </div>
                                     </form>
@@ -399,29 +405,23 @@
                             </div>
                         )}
 
-                        {/* STEP 4: Print Application (Traditional Layout) */}
                         {step === 4 && (
                             <div className="print-container bg-white shadow-xl rounded mx-auto p-12 text-sm leading-relaxed border border-gray-200 relative">
-                                
                                 <div className="no-print absolute top-4 right-4 flex gap-2">
                                     <button onClick={() => setStep(2)} className="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"><i className="fas fa-edit mr-2"></i>แก้ไขข้อมูล</button>
                                     <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"><i className="fas fa-print mr-2"></i>พิมพ์ใบสมัคร (PDF)</button>
                                     <button onClick={() => window.location.reload()} className="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600"><i className="fas fa-sign-out-alt"></i></button>
                                 </div>
 
-                                {/* Form Layout similar to image */}
                                 <div className="text-center mb-6 relative">
-                                    <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/cropped-cropped-cropped-logonobg-1.png" className="w-16 h-16 mx-auto mb-2" alt="Logo"/>
+                                    <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/cropped-cropped-cropped-logonobg-1.png" className="w-16 h-16 mx-auto mb-2 grayscale" alt="Logo"/>
                                     <h2 className="text-xl font-bold mb-2">ใบสมัครเข้าเรียน โรงเรียนปากแพรกวิทยาคม</h2>
-                                    <div className="absolute top-0 right-0 w-24 h-32 border border-gray-400 flex items-center justify-center text-gray-400 text-xs">
-                                        ติดรูปถ่าย<br/>1.5 นิ้ว
-                                    </div>
+                                    <div className="absolute top-0 right-0 w-24 h-32 border border-gray-400 flex items-center justify-center text-gray-400 text-xs">ติดรูปถ่าย<br/>1.5 นิ้ว</div>
                                 </div>
 
                                 <div className="mb-4">
                                     ปีการศึกษา <span className="border-b border-dotted border-gray-400 inline-block w-32 text-center">{new Date().getFullYear() + 543}</span>
-                                    <br/>
-                                    สมัครเรียนระดับชั้น <span className="border-b border-dotted border-gray-400 inline-block px-4">{formData.level}</span>
+                                    <br/>สมัครเรียนระดับชั้น <span className="border-b border-dotted border-gray-400 inline-block px-4">{formData.level}</span>
                                 </div>
 
                                 <h3 className="font-bold mb-2">๑. ข้อมูลทั่วไปของนักเรียน</h3>
@@ -466,23 +466,12 @@
                                     โทรศัพท์ <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.mobile}</span>
                                 </div>
 
-                                <div className="mt-12 text-center font-bold">
-                                    ข้าพเจ้าขอรับรองว่าข้อมูลที่ได้แจ้งไว้ข้างต้น เป็นความจริงทุกประการ
-                                </div>
+                                <div className="mt-12 text-center font-bold">ข้าพเจ้าขอรับรองว่าข้อมูลที่ได้แจ้งไว้ข้างต้น เป็นความจริงทุกประการ</div>
 
                                 <div className="flex justify-between mt-16 px-10">
-                                    <div className="text-center">
-                                        ลงชื่อ......................................................ผู้สมัคร<br/>
-                                        (......................................................)<br/>
-                                        ........../........../..........
-                                    </div>
-                                    <div className="text-center">
-                                        ลงชื่อ......................................................เจ้าหน้าที่รับสมัคร<br/>
-                                        (......................................................)<br/>
-                                        ........../........../..........
-                                    </div>
+                                    <div className="text-center">ลงชื่อ......................................................ผู้สมัคร<br/>(......................................................)<br/>........../........../..........</div>
+                                    <div className="text-center">ลงชื่อ......................................................เจ้าหน้าที่รับสมัคร<br/>(......................................................)<br/>........../........../..........</div>
                                 </div>
-
                             </div>
                         )}
                     </div>
