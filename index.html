@@ -155,6 +155,42 @@
                 setIsLoading(false);
             };
 
+            // ฟังก์ชันนี้หายไปในเวอร์ชันก่อน ทำให้หน้าขาวเวลากดปุ่มในหน้า 2
+            const validateStep2 = (e) => {
+                e.preventDefault();
+                setStep(3);
+            };
+
+            // ฟังก์ชันนี้หายไปในเวอร์ชันก่อน ทำให้หน้าขาวเวลากดปุ่ม Submit หน้า 3
+            const submitApplication = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                
+                const payload = {
+                    action: 'submit_application',
+                    ...formData,
+                    files: files
+                };
+
+                try {
+                    const response = await fetch(GAS_WEBAPP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        setStep(4);
+                    } else {
+                        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + result.message);
+                    }
+                } catch (error) {
+                    console.error("Submit Error", error);
+                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
+                }
+                setIsLoading(false);
+            };
+
             return (
                 <div>
                     {showNotFoundPopup && (
