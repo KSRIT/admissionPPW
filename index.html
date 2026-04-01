@@ -92,9 +92,14 @@
             const [isEditing, setIsEditing] = useState(false);
             const [formData, setFormData] = useState({
                 idCard: '', dob: '', level: 'ม.1',
-                prefix: '', firstname: '', lastname: '', gender: '', nationality: 'ไทย', religion: 'พุทธ', talent: '', disability: '',
-                address: '', moo: '', road: '', province: '', district: '', subdistrict: '', homePhone: '', mobile: '', email: '',
-                prevSchool: '', gpa: '', gradYear: ''
+                prefix: '', firstname: '', lastname: '', nickname: '', gender: '', 
+                age: '', race: 'ไทย', nationality: 'ไทย', religion: 'พุทธ', disease: '',
+                address: '', moo: '', road: '', province: '', district: '', subdistrict: '', zipcode: '', homePhone: '', mobile: '', email: '',
+                prevSchool: '', prevSchoolProvince: '', lastGrade: '', leaveReason: '', gpa: '', gradYear: '',
+                fatherName: '', fatherAge: '', fatherJob: '', fatherIncome: '', fatherPhone: '',
+                motherName: '', motherAge: '', motherJob: '', motherIncome: '', motherPhone: '',
+                parentsStatus: 'อยู่ร่วมกัน',
+                guardianName: '', guardianAge: '', guardianJob: '', guardianIncome: '', guardianPhone: '', guardianRelation: ''
             });
             const [files, setFiles] = useState({
                 birthCert: null, idCardDoc: null, houseReg: null, photo: null, transcript: null
@@ -299,8 +304,8 @@
                                             </div>
                                         </div>
 
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">1. ข้อมูลส่วนตัวผู้สมัคร</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">1. ข้อมูลทั่วไปของนักเรียน</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                                             <div>
                                                 <label className="block text-sm text-gray-600 mb-1">คำนำหน้าชื่อ *</label>
                                                 <select name="prefix" value={formData.prefix} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400">
@@ -311,69 +316,111 @@
                                                     <option value="นางสาว">นางสาว</option>
                                                 </select>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">ชื่อ *</label>
-                                                <input type="text" name="firstname" value={formData.firstname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">นามสกุล *</label>
-                                                <input type="text" name="lastname" value={formData.lastname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
-                                            </div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">ชื่อ *</label><input type="text" name="firstname" value={formData.firstname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">นามสกุล *</label><input type="text" name="lastname" value={formData.lastname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">ชื่อเล่น</label><input type="text" name="nickname" value={formData.nickname} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
                                         </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                                             <div>
                                                 <label className="block text-sm text-gray-600 mb-1">เพศ</label>
                                                 <div className="flex gap-4 mt-2">
-                                                    <label><input type="radio" name="gender" value="ชาย" checked={formData.gender==='ชาย'} onChange={handleInputChange}/> ชาย</label>
-                                                    <label><input type="radio" name="gender" value="หญิง" checked={formData.gender==='หญิง'} onChange={handleInputChange}/> หญิง</label>
+                                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="ชาย" checked={formData.gender==='ชาย'} onChange={handleInputChange}/> ชาย</label>
+                                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="หญิง" checked={formData.gender==='หญิง'} onChange={handleInputChange}/> หญิง</label>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">สัญชาติ</label>
-                                                <input type="text" name="nationality" value={formData.nationality} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">ศาสนา</label>
-                                                <input type="text" name="religion" value={formData.religion} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">วัน/เดือน/ปีเกิด *</label>
-                                                <input type="date" name="dob" value={formData.dob} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
-                                            </div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">วัน/เดือน/ปีเกิด *</label><input type="date" name="dob" value={formData.dob} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="age" value={formData.age} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">เชื้อชาติ</label><input type="text" name="race" value={formData.race} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                            <div><label className="block text-sm text-gray-600 mb-1">สัญชาติ</label><input type="text" name="nationality" value={formData.nationality} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">ศาสนา</label><input type="text" name="religion" value={formData.religion} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">โรคประจำตัว/ประวัติการแพ้ยา</label><input type="text" name="disease" value={formData.disease} onChange={handleInputChange} placeholder="ไม่มีให้เว้นว่าง" className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">2. ข้อมูลสำเร็จการศึกษา</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div><label className="block text-sm text-gray-600 mb-1">สถานศึกษาเดิม *</label><input type="text" name="prevSchool" required value={formData.prevSchool} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">จังหวัด (สถานศึกษาเดิม) *</label><input type="text" name="prevSchoolProvince" required value={formData.prevSchoolProvince} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">ความสามารถพิเศษ (ถ้ามี)</label>
-                                                <input type="text" name="talent" value={formData.talent} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
+                                            <div><label className="block text-sm text-gray-600 mb-1">เรียนชั้นสุดท้าย *</label><input type="text" name="lastGrade" required value={formData.lastGrade} onChange={handleInputChange} placeholder="เช่น ป.6, ม.3" className="w-full p-2.5 border rounded"/></div>
+                                            <div><label className="block text-sm text-gray-600 mb-1">สาเหตุที่ออกจากโรงเรียนเดิม *</label><input type="text" name="leaveReason" required value={formData.leaveReason} onChange={handleInputChange} placeholder="เช่น สำเร็จการศึกษา, ย้ายที่อยู่" className="w-full p-2.5 border rounded"/></div>
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">3. ข้อมูลครอบครัว</h3>
+                                        <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
+                                            <h4 className="font-bold text-gray-600 mb-3 border-b pb-2">ที่อยู่ปัจจุบัน</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                                <div><label className="block text-sm text-gray-600 mb-1">บ้านเลขที่ *</label><input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">หมู่ที่</label><input type="text" name="moo" value={formData.moo} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">ถนน</label><input type="text" name="road" value={formData.road} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">ความพิการ (ถ้ามี)</label>
-                                                <input type="text" name="disability" value={formData.disability} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" />
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                                <div><label className="block text-sm text-gray-600 mb-1">ตำบล/แขวง *</label><input type="text" name="subdistrict" required value={formData.subdistrict} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">อำเภอ/เขต *</label><input type="text" name="district" required value={formData.district} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">จังหวัด *</label><input type="text" name="province" required value={formData.province} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">รหัสไปรษณีย์ *</label><input type="text" name="zipcode" required value={formData.zipcode} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์บ้าน</label><input type="text" name="homePhone" value={formData.homePhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์มือถือ *</label><input type="text" name="mobile" required value={formData.mobile} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
                                             </div>
                                         </div>
 
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">2. ข้อมูลที่อยู่ตามทะเบียนบ้าน</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <div><label className="block text-sm text-gray-600 mb-1">บ้านเลขที่ *</label><input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">หมู่ที่</label><input type="text" name="moo" value={formData.moo} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ถนน</label><input type="text" name="road" value={formData.road} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <div><label className="block text-sm text-gray-600 mb-1">จังหวัด *</label><input type="text" name="province" required value={formData.province} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">อำเภอ/เขต *</label><input type="text" name="district" required value={formData.district} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ตำบล/แขวง *</label><input type="text" name="subdistrict" required value={formData.subdistrict} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                            <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์บ้าน</label><input type="text" name="homePhone" value={formData.homePhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์มือถือ *</label><input type="text" name="mobile" required value={formData.mobile} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">E-mail</label><input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                                <h4 className="font-bold text-blue-700 mb-3 border-b border-blue-200 pb-2"><i className="fas fa-male mr-2"></i>ข้อมูลบิดา</h4>
+                                                <div className="space-y-3">
+                                                    <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล บิดา</label><input type="text" name="fatherName" value={formData.fatherName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="fatherAge" value={formData.fatherAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                        <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="fatherJob" value={formData.fatherJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div><label className="block text-sm text-gray-600 mb-1">รายได้/เดือน</label><input type="text" name="fatherIncome" value={formData.fatherIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                        <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="fatherPhone" value={formData.fatherPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="bg-pink-50 p-4 rounded-lg border border-pink-100">
+                                                <h4 className="font-bold text-pink-700 mb-3 border-b border-pink-200 pb-2"><i className="fas fa-female mr-2"></i>ข้อมูลมารดา</h4>
+                                                <div className="space-y-3">
+                                                    <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล มารดา</label><input type="text" name="motherName" value={formData.motherName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="motherAge" value={formData.motherAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                        <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="motherJob" value={formData.motherJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div><label className="block text-sm text-gray-600 mb-1">รายได้/เดือน</label><input type="text" name="motherIncome" value={formData.motherIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                        <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="motherPhone" value={formData.motherPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
 
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">3. ข้อมูลการศึกษา</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                            <div><label className="block text-sm text-gray-600 mb-1">จบจากสถานศึกษา *</label><input type="text" name="prevSchool" required value={formData.prevSchool} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">เกรดเฉลี่ยสะสม (GPA) *</label><input type="number" step="0.01" min="1.00" max="4.00" name="gpa" required value={formData.gpa} onChange={handleInputChange} placeholder="1.00 - 4.00" className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ปีที่สำเร็จการศึกษา *</label><input type="text" name="gradYear" required value={formData.gradYear} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                        <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+                                            <h4 className="font-bold text-gray-700 mb-3">สถานภาพของบิดา-มารดา</h4>
+                                            <div className="flex flex-wrap gap-6">
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="อยู่ร่วมกัน" checked={formData.parentsStatus === 'อยู่ร่วมกัน'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> อยู่ร่วมกัน</label>
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="แยกกันอยู่" checked={formData.parentsStatus === 'แยกกันอยู่'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> แยกกันอยู่</label>
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="หย่าร้าง" checked={formData.parentsStatus === 'หย่าร้าง'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> หย่าร้าง</label>
+                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="หม้าย" checked={formData.parentsStatus === 'หม้าย'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> หม้าย</label>
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">4. ผู้ปกครอง (กรณีไม่ใช่บิดา-มารดา)</h3>
+                                        <div className="bg-green-50 p-4 rounded-lg mb-8 border border-green-100">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล ผู้ปกครอง</label><input type="text" name="guardianName" value={formData.guardianName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">ความสัมพันธ์กับนักเรียน</label><input type="text" name="guardianRelation" value={formData.guardianRelation} onChange={handleInputChange} placeholder="เช่น ปู่, ย่า, น้า, อา" className="w-full p-2.5 border rounded"/></div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="guardianAge" value={formData.guardianAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="guardianJob" value={formData.guardianJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">รายได้</label><input type="text" name="guardianIncome" value={formData.guardianIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                                <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="guardianPhone" value={formData.guardianPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
+                                            </div>
                                         </div>
 
                                         <div className="flex gap-4 mt-8">
@@ -461,8 +508,9 @@
 
                                 <h3 className="font-bold mb-2">๒. ข้อมูลสำเร็จการศึกษา</h3>
                                 <div className="mb-4">
-                                    สถานศึกษาเดิม <span className="border-b border-dotted border-gray-400 inline-block w-64 px-2">{formData.prevSchool}</span>
-                                    เกรดเฉลี่ย <span className="border-b border-dotted border-gray-400 inline-block w-24 px-2 text-center">{formData.gpa}</span>
+                                    สถานศึกษาเดิม <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[150px]">{formData.prevSchool}</span>
+                                    จังหวัด <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[120px]">{formData.prevSchoolProvince}</span>
+                                    จบชั้น <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[80px]">{formData.lastGrade}</span>
                                 </div>
 
                                 <h3 className="font-bold mb-2">๓. ข้อมูลที่อยู่ติดต่อได้</h3>
@@ -470,14 +518,31 @@
                                     บ้านเลขที่ <span className="border-b border-dotted border-gray-400 inline-block w-16 px-2">{formData.address}</span>
                                     หมู่ <span className="border-b border-dotted border-gray-400 inline-block w-12 px-2">{formData.moo}</span>
                                     ถนน <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.road}</span>
+                                    ตำบล/แขวง <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.subdistrict}</span>
                                 </div>
                                 <div className="mb-2">
-                                    ตำบล/แขวง <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.subdistrict}</span>
                                     อำเภอ/เขต <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.district}</span>
+                                    จังหวัด <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.province}</span>
+                                    รหัสไปรษณีย์ <span className="border-b border-dotted border-gray-400 inline-block w-24 px-2">{formData.zipcode}</span>
                                 </div>
                                 <div className="mb-4">
-                                    จังหวัด <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.province}</span>
-                                    โทรศัพท์ <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.mobile}</span>
+                                    โทรศัพท์บ้าน <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.homePhone || '-'}</span>
+                                    โทรศัพท์มือถือ <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.mobile}</span>
+                                </div>
+
+                                <h3 className="font-bold mb-2">๔. ข้อมูลครอบครัว</h3>
+                                <div className="mb-2">
+                                    ชื่อ-สกุลบิดา <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[200px]">{formData.fatherName || '-'}</span>
+                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.fatherPhone || '-'}</span>
+                                </div>
+                                <div className="mb-2">
+                                    ชื่อ-สกุลมารดา <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[200px]">{formData.motherName || '-'}</span>
+                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.motherPhone || '-'}</span>
+                                </div>
+                                <div className="mb-4">
+                                    สถานภาพ <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[80px]">{formData.parentsStatus}</span>
+                                    ผู้ปกครอง <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[180px]">{formData.guardianName || '-'}</span>
+                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.guardianPhone || '-'}</span>
                                 </div>
 
                                 <div className="mt-12 text-center font-bold">ข้าพเจ้าขอรับรองว่าข้อมูลที่ได้แจ้งไว้ข้างต้น เป็นความจริงทุกประการ</div>
