@@ -143,26 +143,28 @@
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-gray-100 text-gray-700 text-sm">
-                                            <th className="p-4 border-b font-semibold">อัพเดทล่าสุด</th>
                                             <th className="p-4 border-b font-semibold">เลขบัตรประชาชน</th>
                                             <th className="p-4 border-b font-semibold">ชื่อ-นามสกุล</th>
                                             <th className="p-4 border-b font-semibold">เบอร์โทรติดต่อ</th>
-                                            <th className="p-4 border-b font-semibold text-center">หลักฐาน</th>
+                                            <th className="p-4 border-b font-semibold text-center">ไฟล์ที่อัพโหลด</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {filteredStudents.length === 0 ? 
-                                            <tr><td colSpan="5" className="text-center p-10 text-gray-500">ยังไม่มีข้อมูลผู้สมัครในระดับชั้นนี้</td></tr> : 
+                                            <tr><td colSpan="4" className="text-center p-10 text-gray-500">ยังไม่มีข้อมูลผู้สมัครในระดับชั้นนี้</td></tr> : 
                                             filteredStudents.map((s, idx) => (
                                             <tr key={idx} className="hover:bg-gray-50 border-b transition">
-                                                <td className="p-4 text-sm text-gray-600">{new Date(s.Timestamp).toLocaleString('th-TH')}</td>
                                                 <td className="p-4 font-mono text-sm">{s['ID Card']}</td>
                                                 <td className="p-4 font-medium">{s.Prefix}{s.Firstname} {s.Lastname}</td>
                                                 <td className="p-4 text-sm">{s.Mobile}</td>
                                                 <td className="p-4 text-center">
-                                                    <a href={s['Folder URL']} target="_blank" className="inline-flex items-center justify-center bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-sm hover:bg-indigo-600 hover:text-white transition">
-                                                        <i className="fas fa-folder-open mr-2"></i> เปิดโฟลเดอร์
-                                                    </a>
+                                                    {s['Folder URL'] ? (
+                                                        <a href={s['Folder URL']} target="_blank" rel="noopener noreferrer" title="เปิดโฟลเดอร์ Google Drive ในแท็บใหม่" className="inline-flex items-center justify-center bg-blue-50 text-blue-700 border border-blue-200 px-4 py-2 rounded-lg text-sm hover:bg-blue-600 hover:text-white transition font-medium shadow-sm">
+                                                            <i className="fab fa-google-drive mr-2 text-lg"></i> เปิดโฟลเดอร์
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-sm bg-gray-100 px-3 py-1.5 rounded">ไม่มีไฟล์</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
