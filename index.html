@@ -481,7 +481,12 @@
                         fetchPublicNames(); // รีเฟรชรายชื่อใหม่หลังจากสมัครเสร็จ
                     });
                 } else {
-                    throw new Error(result.message);
+                    // --- ดักจับ Error กรณีชื่อซ้ำ ---
+                    if (result.message === 'มีการสมัครเรียนแล้ว') {
+                        Swal.fire('ไม่สามารถสมัครได้', 'ชื่อ-นามสกุลนี้ มีการสมัครเรียนแล้วในระบบ', 'warning');
+                    } else {
+                        throw new Error(result.message);
+                    }
                 }
             } catch (error) {
                 hideLoading();
