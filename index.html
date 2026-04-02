@@ -3,563 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรับสมัครนักเรียน ออนไลน์ โรงเรียนปากแพรกวิทยาคม</title>
+    <title>ระบบรับสมัครนักเรียน</title>
+    <!-- Font Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts: Sarabun -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f0fdfa; }
-        .bg-theme-blue { background-color: #0ea5e9; }
-        .text-theme-blue { color: #0ea5e9; }
-        .bg-theme-pink { background-color: #ec4899; }
-        .text-theme-pink { color: #ec4899; }
-        .border-theme-pink { border-color: #ec4899; }
-        
-        @media print {
-            body { background-color: white; }
-            .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            .print-container { width: 100%; margin: 0; padding: 0; box-shadow: none; border: none !important; }
-            .page-break { page-break-before: always; }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: {
+                        primary: '#3b82f6', // ฟ้า
+                        secondary: '#ec4899', // ชมพู
+                    }
+                }
+            }
         }
-        .print-only { display: none; }
+    </script>
+    <!-- SweetAlert2 สำหรับแจ้งเตือน -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #3b82f6, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .loader {
+            border: 4px solid #f3f3f3; border-top: 4px solid #ec4899;
+            border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* ซ่อนส่วนต่างๆ เริ่มต้น */
+        #section-form, #section-admin-login, #section-admin-dashboard { display: none; }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="bg-gradient-to-br from-blue-50 via-white to-pink-50 min-h-screen flex flex-col text-gray-800">
 
-    <script type="text/babel">
-        // ==========================================
-        // ตั้งค่า URL ของ Google Apps Script ที่ Deploy แล้ว (อันใหม่ล่าสุด)
-        // ==========================================
-        const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbysA9t7bYvlDlOwBb-6vJCi7HbGrGoWaylKNzT63qrzTNgfcyBIf5eSS4vZd-s33lNq/exec"; 
-        
-        const { useState, useEffect } = React;
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+        <div class="loader mb-4"></div>
+        <p class="text-secondary font-medium" id="loading-text">กำลังโหลดข้อมูล...</p>
+    </div>
 
-        // คอมโพเนนต์สำหรับแสดงช่องอัพโหลดและตัวอย่างรูป (ย้ายออกมานอก App เพื่อป้องกัน input รีเซ็ตตัวเอง)
-        const FileUploadBox = ({ label, name, required, isEditing, filesState, onChange }) => {
-            const fileData = filesState[name];
-            // ยกเลิกการบังคับ require ที่ HTML input หากมีไฟล์อยู่ใน State แล้ว
-            const isInputRequired = !isEditing && required && !fileData;
-            
-            return (
-                <div className="border border-gray-200 p-4 rounded-xl bg-gray-50 shadow-sm transition hover:border-indigo-300 hover:shadow-md relative">
-                    <label className="block font-semibold mb-2 text-gray-700">
-                        {label} {(!isEditing && required) && <span className="text-red-500">*</span>}
-                    </label>
-                    <input 
-                        type="file" 
-                        name={name} 
-                        onChange={onChange} 
-                        required={isInputRequired} 
-                        accept={name === 'photo' ? "image/*" : "image/*,.pdf"} 
-                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" 
-                    />
-                    
-                    {/* แสดงตัวอย่างภาพ */}
-                    {fileData && (
-                        <div className="mt-4 border rounded-lg overflow-hidden bg-white p-2">
-                            {fileData.mimeType.startsWith('image/') ? (
-                                <div className="relative">
-                                    <img src={fileData.previewUrl} alt="Preview" className="w-full h-32 object-contain rounded" />
-                                    <div className="absolute top-0 right-0 bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg">อัพโหลดแล้ว</div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center p-4 bg-red-50 text-red-700 rounded-lg">
-                                    <i className="fas fa-file-pdf text-3xl mr-3"></i>
-                                    <span className="text-sm font-medium truncate">{fileData.fileName}</span>
-                                </div>
-                            )}
-                        </div>
-                    )}
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/logohomeArtboard-1-2048x523.png" alt="Logo" class="h-10 md:h-14 object-contain cursor-pointer" onclick="navigate('home')">
+            <nav class="flex gap-2 md:gap-4">
+                <button onclick="navigate('home')" class="text-sm md:text-base font-medium text-gray-600 hover:text-primary transition">หน้าแรก</button>
+                <button onclick="navigate('admin-login')" class="text-sm md:text-base font-medium text-gray-600 hover:text-secondary transition">ผู้ดูแลระบบ</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-4xl mx-auto px-4 py-8">
+
+        <!-- 1. Section: Home (คำอธิบาย) -->
+        <section id="section-home" class="glass-card shadow-xl rounded-3xl p-6 md:p-10 text-center transform transition duration-500">
+            <h1 class="text-2xl md:text-4xl font-bold mb-6 gradient-text">ยินดีต้อนรับสู่ระบบรับสมัครนักเรียน</h1>
+            <div id="instruction-content" class="text-left text-gray-700 bg-blue-50 p-6 rounded-2xl mb-8 leading-relaxed shadow-inner min-h-[150px]">
+                <!-- ข้อความจาก Google Sheet จะมาแสดงที่นี่ -->
+                กำลังดึงข้อมูลระเบียบการรับสมัคร...
+            </div>
+            <button onclick="navigate('form')" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full shadow-lg hover:shadow-2xl hover:scale-105 transition transform duration-300 flex items-center justify-center gap-2 mx-auto text-lg">
+                <i class="ph ph-pencil-simple text-2xl"></i> กรอกใบสมัครออนไลน์
+            </button>
+        </section>
+
+        <!-- 2. Section: Application Form -->
+        <section id="section-form" class="glass-card shadow-xl rounded-3xl p-6 md:p-10">
+            <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                <button onclick="navigate('home')" class="text-gray-400 hover:text-gray-600"><i class="ph ph-arrow-left text-2xl"></i></button>
+                <h2 class="text-2xl md:text-3xl font-bold gradient-text">แบบฟอร์มข้อมูลผู้สมัคร</h2>
+            </div>
+
+            <form id="admission-form" onsubmit="submitForm(event)" class="space-y-8">
+                <!-- ระดับชั้นที่สมัคร -->
+                <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
+                    <h3 class="text-lg font-semibold text-primary mb-4 flex items-center gap-2"><i class="ph ph-graduation-cap"></i> ระดับชั้นที่ต้องการสมัคร</h3>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="level" value="ม.1" required class="peer hidden">
+                            <div class="p-4 bg-white border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-blue-50 peer-checked:text-primary text-center font-medium transition shadow-sm">มัธยมศึกษาปีที่ 1 (ม.1)</div>
+                        </label>
+                        <label class="flex-1 cursor-pointer">
+                            <input type="radio" name="level" value="ม.4" required class="peer hidden">
+                            <div class="p-4 bg-white border-2 border-gray-200 rounded-xl peer-checked:border-secondary peer-checked:bg-pink-50 peer-checked:text-secondary text-center font-medium transition shadow-sm">มัธยมศึกษาปีที่ 4 (ม.4)</div>
+                        </label>
+                    </div>
                 </div>
-            );
-        };
 
-        const App = () => {
-            const [step, setStep] = useState(1);
-            const [showNotFoundPopup, setShowNotFoundPopup] = useState(false);
-            const [isLoading, setIsLoading] = useState(false);
-            const [isEditing, setIsEditing] = useState(false);
-            const [formData, setFormData] = useState({
-                idCard: '', dob: '', level: 'ม.1',
-                prefix: '', firstname: '', lastname: '', nickname: '', gender: '', 
-                age: '', race: 'ไทย', nationality: 'ไทย', religion: 'พุทธ', disease: '',
-                address: '', moo: '', road: '', province: '', district: '', subdistrict: '', zipcode: '', homePhone: '', mobile: '', email: '',
-                prevSchool: '', prevSchoolProvince: '', lastGrade: '', leaveReason: '', gpa: '', gradYear: '',
-                fatherName: '', fatherAge: '', fatherJob: '', fatherIncome: '', fatherPhone: '',
-                motherName: '', motherAge: '', motherJob: '', motherIncome: '', motherPhone: '',
-                parentsStatus: 'อยู่ร่วมกัน',
-                guardianName: '', guardianAge: '', guardianJob: '', guardianIncome: '', guardianPhone: '', guardianRelation: ''
-            });
-            const [files, setFiles] = useState({
-                birthCert: null, idCardDoc: null, houseReg: null, photo: null, transcript: null
-            });
-
-            const handleInputChange = (e) => {
-                const { name, value } = e.target;
-                
-                // สำหรับช่องเลข 13 หลัก ให้กรองเอาเฉพาะตัวเลขเท่านั้น (ลบขีดหรือช่องว่างออก)
-                if (name === 'idCard') {
-                    const onlyNums = value.replace(/[^0-9]/g, '');
-                    if (onlyNums.length <= 13) {
-                        setFormData(prev => ({ ...prev, [name]: onlyNums }));
-                    }
-                } else {
-                    setFormData(prev => ({ ...prev, [name]: value }));
-                }
-            };
-
-            const handleFileChange = (e) => {
-                const { name, files: selectedFiles } = e.target;
-                if (selectedFiles.length > 0) {
-                    const file = selectedFiles[0];
-                    const previewUrl = URL.createObjectURL(file); // สร้าง URL สำหรับแสดงตัวอย่าง
-                    
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64String = reader.result.split(',')[1];
-                        setFiles(prev => ({
-                            ...prev,
-                            [name]: {
-                                base64: base64String,
-                                mimeType: file.type,
-                                extension: file.name.split('.').pop(),
-                                previewUrl: previewUrl, // เก็บ URL ตัวอย่างภาพ
-                                fileName: file.name
-                            }
-                        }));
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-
-            const checkData = async (e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                try {
-                    const response = await fetch(GAS_WEBAPP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'check_student', idCard: formData.idCard })
-                    });
-                    const result = await response.json();
-                    
-                    if (result.status === 'found') {
-                        setFormData(result.data);
-                        setIsEditing(true);
-                        setStep(2);
-                        alert("พบข้อมูลในระบบ ท่านสามารถตรวจสอบและแก้ไขข้อมูลของท่านได้");
-                    } else {
-                        setShowNotFoundPopup(true);
-                        setIsEditing(false);
-                    }
-                } catch (error) {
-                    console.error("Error checking data", error);
-                    alert("เกิดข้อผิดพลาดในการเชื่อมต่อระบบ กรุณาลองใหม่อีกครั้ง");
-                }
-                setIsLoading(false);
-            };
-
-            // ฟังก์ชันนี้หายไปในเวอร์ชันก่อน ทำให้หน้าขาวเวลากดปุ่มในหน้า 2
-            const validateStep2 = (e) => {
-                e.preventDefault();
-                setStep(3);
-            };
-
-            // ฟังก์ชันนี้หายไปในเวอร์ชันก่อน ทำให้หน้าขาวเวลากดปุ่ม Submit หน้า 3
-            const submitApplication = async (e) => {
-                e.preventDefault();
-                setIsLoading(true);
-                
-                const payload = {
-                    action: 'submit_application',
-                    ...formData,
-                    files: files
-                };
-
-                try {
-                    const response = await fetch(GAS_WEBAPP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json();
-                    
-                    if (result.status === 'success') {
-                        setStep(4);
-                    } else {
-                        alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + result.message);
-                    }
-                } catch (error) {
-                    console.error("Submit Error", error);
-                    alert("เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
-                }
-                setIsLoading(false);
-            };
-
-            return (
+                <!-- ข้อมูลส่วนตัว -->
                 <div>
-                    {showNotFoundPopup && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-xl shadow-2xl p-8 max-w-sm w-full animate-fade-in-up">
-                                <div className="text-center mb-6">
-                                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <i className="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">ไม่พบข้อมูลท่าน</h3>
-                                    <p className="text-gray-600 text-sm">ยังไม่มีข้อมูลการสมัครของท่านในระบบ ต้องการทำรายการสมัครเรียนใหม่ตอนนี้เลยหรือไม่?</p>
-                                </div>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setShowNotFoundPopup(false)} className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">ยกเลิก</button>
-                                    <button onClick={() => { setShowNotFoundPopup(false); setStep(2); }} className="flex-1 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition font-medium shadow-md">สมัครเรียน</button>
-                                </div>
-                            </div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-primary pl-3">ข้อมูลส่วนตัวนักเรียน</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium mb-1">คำนำหน้า <span class="text-red-500">*</span></label>
+                            <select name="prefix" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                                <option value="">เลือก</option>
+                                <option value="เด็กชาย">เด็กชาย</option>
+                                <option value="เด็กหญิง">เด็กหญิง</option>
+                                <option value="นาย">นาย</option>
+                                <option value="นางสาว">นางสาว</option>
+                            </select>
                         </div>
-                    )}
-
-                    <div className="bg-gradient-to-r from-cyan-500 to-blue-500 shadow-md text-white py-6 px-4 no-print">
-                        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-                            <div className="flex items-center gap-4">
-                                <div className="bg-white p-2 rounded-full shadow-lg">
-                                    <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/cropped-cropped-cropped-logonobg-1.png" alt="Logo" className="w-12 h-12 object-contain" />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl md:text-3xl font-bold tracking-wide">ระบบรับสมัครนักเรียน ออนไลน์</h1>
-                                    <p className="text-cyan-100 text-sm md:text-base mt-1">โรงเรียนปากแพรกวิทยาคม ปีการศึกษา 2568</p>
-                                </div>
-                            </div>
-                            <a href="admin.html" className="text-sm bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full backdrop-blur transition border border-white/50 text-white no-underline inline-block mt-4 md:mt-0">
-                                <i className="fas fa-lock mr-2"></i>ส่วนของผู้ดูแล
-                            </a>
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium mb-1">ชื่อ <span class="text-red-500">*</span></label>
+                            <input type="text" name="firstName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
                         </div>
-                    </div>
-
-                    {step < 4 && (
-                        <div className="max-w-4xl mx-auto pt-8 px-4 no-print">
-                            <div className="flex items-center justify-between relative">
-                                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
-                                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-pink-500 transition-all duration-500 -z-10" style={{width: `${(step-1)*50}%`}}></div>
-                                
-                                {[1, 2, 3].map(num => (
-                                    <div key={num} className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-4 transition-all duration-300 ${step >= num ? 'bg-pink-500 text-white border-pink-200' : 'bg-white text-gray-400 border-gray-200'}`}>
-                                        {num}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-2 font-medium">
-                                <span>ตรวจสอบข้อมูล</span>
-                                <span>กรอกข้อมูลประวัติ</span>
-                                <span>อัพโหลดเอกสาร</span>
-                            </div>
+                        <div class="md:col-span-1">
+                            <label class="block text-sm font-medium mb-1">นามสกุล <span class="text-red-500">*</span></label>
+                            <input type="text" name="lastName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
                         </div>
-                    )}
-
-                    <div className="max-w-4xl mx-auto p-4 py-8">
-                        
-                        {step === 1 && (
-                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in-up border-t-4 border-theme-blue">
-                                <div className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4"><i className="fas fa-id-card text-blue-500 mr-2"></i> ขั้นตอนที่ 1: ตรวจสอบข้อมูล</h2>
-                                    <form onSubmit={checkData} className="space-y-6">
-                                        <div>
-                                            <label className="block text-gray-700 font-semibold mb-2">เลขประจำตัว 13 หลัก <span className="text-red-500">*</span></label>
-                                            <input type="text" name="idCard" value={formData.idCard} onChange={handleInputChange} required pattern="\d{13}" title="กรุณากรอกตัวเลข 13 หลักให้ครบถ้วน" inputMode="numeric"
-                                                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-lg tracking-widest text-center" placeholder="กรอกตัวเลข 13 หลักติดกัน" />
-                                        </div>
-                                        <button type="submit" disabled={isLoading} className={`w-full py-4 rounded-lg text-white font-bold text-lg shadow-lg transition-all ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 hover:-translate-y-1'}`}>
-                                            {isLoading ? <><i className="fas fa-spinner fa-spin mr-2"></i>กำลังตรวจสอบข้อมูล...</> : <><i className="fas fa-search mr-2"></i>ตรวจสอบข้อมูล / เข้าสู่ระบบ</>}
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {step === 2 && (
-                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-theme-pink">
-                                <div className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4 flex items-center justify-between">
-                                        <div><i className="fas fa-user-edit text-pink-500 mr-2"></i> ขั้นตอนที่ 2: กรอกข้อมูลส่วนตัว</div>
-                                        {isEditing && <span className="text-sm font-normal text-blue-700 bg-blue-100 px-3 py-1 rounded-full"><i className="fas fa-info-circle mr-1"></i> โหมดแก้ไขข้อมูล</span>}
-                                    </h2>
-                                    <form onSubmit={validateStep2}>
-                                        <div className="mb-8 bg-blue-50 p-6 rounded-xl border border-blue-100">
-                                            <h3 className="font-bold text-blue-800 mb-4 text-lg">ระดับชั้นที่ต้องการสมัคร</h3>
-                                            <div className="flex gap-6">
-                                                <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-lg shadow-sm flex-1 border border-blue-200 hover:bg-blue-100 transition">
-                                                    <input type="radio" name="level" value="ม.1" checked={formData.level === 'ม.1'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> 
-                                                    <span className="text-lg font-medium">มัธยมศึกษาปีที่ 1 (ม.1)</span>
-                                                </label>
-                                                <label className="flex items-center gap-2 cursor-pointer p-3 bg-white rounded-lg shadow-sm flex-1 border border-blue-200 hover:bg-pink-100 transition">
-                                                    <input type="radio" name="level" value="ม.4" checked={formData.level === 'ม.4'} onChange={handleInputChange} className="w-5 h-5 text-pink-600" /> 
-                                                    <span className="text-lg font-medium">มัธยมศึกษาปีที่ 4 (ม.4)</span>
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">1. ข้อมูลทั่วไปของนักเรียน</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">คำนำหน้าชื่อ *</label>
-                                                <select name="prefix" value={formData.prefix} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400">
-                                                    <option value="">- เลือก -</option>
-                                                    <option value="เด็กชาย">เด็กชาย</option>
-                                                    <option value="เด็กหญิง">เด็กหญิง</option>
-                                                    <option value="นาย">นาย</option>
-                                                    <option value="นางสาว">นางสาว</option>
-                                                </select>
-                                            </div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ชื่อ *</label><input type="text" name="firstname" value={formData.firstname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">นามสกุล *</label><input type="text" name="lastname" value={formData.lastname} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ชื่อเล่น</label><input type="text" name="nickname" value={formData.nickname} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                            <div>
-                                                <label className="block text-sm text-gray-600 mb-1">เพศ</label>
-                                                <div className="flex gap-4 mt-2">
-                                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="ชาย" checked={formData.gender==='ชาย'} onChange={handleInputChange}/> ชาย</label>
-                                                    <label className="flex items-center gap-1 cursor-pointer"><input type="radio" name="gender" value="หญิง" checked={formData.gender==='หญิง'} onChange={handleInputChange}/> หญิง</label>
-                                                </div>
-                                            </div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">วัน/เดือน/ปีเกิด *</label><input type="date" name="dob" value={formData.dob} onChange={handleInputChange} required className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="age" value={formData.age} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">เชื้อชาติ</label><input type="text" name="race" value={formData.race} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                            <div><label className="block text-sm text-gray-600 mb-1">สัญชาติ</label><input type="text" name="nationality" value={formData.nationality} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">ศาสนา</label><input type="text" name="religion" value={formData.religion} onChange={handleInputChange} className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">โรคประจำตัว/ประวัติการแพ้ยา</label><input type="text" name="disease" value={formData.disease} onChange={handleInputChange} placeholder="ไม่มีให้เว้นว่าง" className="w-full p-2.5 border rounded focus:ring-2 focus:ring-pink-400" /></div>
-                                        </div>
-
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">2. ข้อมูลสำเร็จการศึกษา</h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                            <div><label className="block text-sm text-gray-600 mb-1">สถานศึกษาเดิม *</label><input type="text" name="prevSchool" required value={formData.prevSchool} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">จังหวัด (สถานศึกษาเดิม) *</label><input type="text" name="prevSchoolProvince" required value={formData.prevSchoolProvince} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                                            <div><label className="block text-sm text-gray-600 mb-1">เรียนชั้นสุดท้าย *</label><input type="text" name="lastGrade" required value={formData.lastGrade} onChange={handleInputChange} placeholder="เช่น ป.6, ม.3" className="w-full p-2.5 border rounded"/></div>
-                                            <div><label className="block text-sm text-gray-600 mb-1">สาเหตุที่ออกจากโรงเรียนเดิม *</label><input type="text" name="leaveReason" required value={formData.leaveReason} onChange={handleInputChange} placeholder="เช่น สำเร็จการศึกษา, ย้ายที่อยู่" className="w-full p-2.5 border rounded"/></div>
-                                        </div>
-
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">3. ข้อมูลครอบครัว</h3>
-                                        <div className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-                                            <h4 className="font-bold text-gray-600 mb-3 border-b pb-2">ที่อยู่ปัจจุบัน</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                                <div><label className="block text-sm text-gray-600 mb-1">บ้านเลขที่ *</label><input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">หมู่ที่</label><input type="text" name="moo" value={formData.moo} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">ถนน</label><input type="text" name="road" value={formData.road} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                                                <div><label className="block text-sm text-gray-600 mb-1">ตำบล/แขวง *</label><input type="text" name="subdistrict" required value={formData.subdistrict} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">อำเภอ/เขต *</label><input type="text" name="district" required value={formData.district} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">จังหวัด *</label><input type="text" name="province" required value={formData.province} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">รหัสไปรษณีย์ *</label><input type="text" name="zipcode" required value={formData.zipcode} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์บ้าน</label><input type="text" name="homePhone" value={formData.homePhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">โทรศัพท์มือถือ *</label><input type="text" name="mobile" required value={formData.mobile} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                                <h4 className="font-bold text-blue-700 mb-3 border-b border-blue-200 pb-2"><i className="fas fa-male mr-2"></i>ข้อมูลบิดา</h4>
-                                                <div className="space-y-3">
-                                                    <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล บิดา</label><input type="text" name="fatherName" value={formData.fatherName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="fatherAge" value={formData.fatherAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                        <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="fatherJob" value={formData.fatherJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div><label className="block text-sm text-gray-600 mb-1">รายได้/เดือน</label><input type="text" name="fatherIncome" value={formData.fatherIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                        <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="fatherPhone" value={formData.fatherPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="bg-pink-50 p-4 rounded-lg border border-pink-100">
-                                                <h4 className="font-bold text-pink-700 mb-3 border-b border-pink-200 pb-2"><i className="fas fa-female mr-2"></i>ข้อมูลมารดา</h4>
-                                                <div className="space-y-3">
-                                                    <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล มารดา</label><input type="text" name="motherName" value={formData.motherName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="motherAge" value={formData.motherAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                        <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="motherJob" value={formData.motherJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <div><label className="block text-sm text-gray-600 mb-1">รายได้/เดือน</label><input type="text" name="motherIncome" value={formData.motherIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                        <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="motherPhone" value={formData.motherPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="mb-8 p-4 border rounded-lg bg-gray-50">
-                                            <h4 className="font-bold text-gray-700 mb-3">สถานภาพของบิดา-มารดา</h4>
-                                            <div className="flex flex-wrap gap-6">
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="อยู่ร่วมกัน" checked={formData.parentsStatus === 'อยู่ร่วมกัน'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> อยู่ร่วมกัน</label>
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="แยกกันอยู่" checked={formData.parentsStatus === 'แยกกันอยู่'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> แยกกันอยู่</label>
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="หย่าร้าง" checked={formData.parentsStatus === 'หย่าร้าง'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> หย่าร้าง</label>
-                                                <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="parentsStatus" value="หม้าย" checked={formData.parentsStatus === 'หม้าย'} onChange={handleInputChange} className="w-5 h-5 text-blue-600" /> หม้าย</label>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-xl font-bold text-gray-700 mt-8 mb-4">4. ผู้ปกครอง (กรณีไม่ใช่บิดา-มารดา)</h3>
-                                        <div className="bg-green-50 p-4 rounded-lg mb-8 border border-green-100">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                                <div><label className="block text-sm text-gray-600 mb-1">ชื่อ-สกุล ผู้ปกครอง</label><input type="text" name="guardianName" value={formData.guardianName} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">ความสัมพันธ์กับนักเรียน</label><input type="text" name="guardianRelation" value={formData.guardianRelation} onChange={handleInputChange} placeholder="เช่น ปู่, ย่า, น้า, อา" className="w-full p-2.5 border rounded"/></div>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <div><label className="block text-sm text-gray-600 mb-1">อายุ (ปี)</label><input type="number" name="guardianAge" value={formData.guardianAge} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">อาชีพ</label><input type="text" name="guardianJob" value={formData.guardianJob} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">รายได้</label><input type="text" name="guardianIncome" value={formData.guardianIncome} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                                <div><label className="block text-sm text-gray-600 mb-1">เบอร์โทรศัพท์</label><input type="text" name="guardianPhone" value={formData.guardianPhone} onChange={handleInputChange} className="w-full p-2.5 border rounded"/></div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-4 mt-8">
-                                            <button type="button" onClick={() => setStep(1)} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">ย้อนกลับ</button>
-                                            <button type="submit" className="flex-1 py-3 bg-pink-500 text-white rounded-lg font-bold hover:bg-pink-600 transition shadow-lg text-lg">ดำเนินการต่อ (อัพโหลดเอกสาร) <i className="fas fa-arrow-right ml-2"></i></button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {step === 3 && (
-                            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border-t-4 border-indigo-500">
-                                <div className="p-8">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4"><i className="fas fa-file-upload text-indigo-500 mr-2"></i> ขั้นตอนที่ 3: อัพโหลดเอกสาร</h2>
-                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6 text-sm text-yellow-800 flex items-center">
-                                        <i className="fas fa-info-circle mr-3 text-xl"></i> 
-                                        <div>
-                                            <strong>กรุณาเตรียมไฟล์ภาพ (JPG, PNG) หรือ PDF</strong><br/>
-                                            ขนาดไม่เกินไฟล์ละ 2MB หากท่านอยู่ในโหมดแก้ไขข้อมูล ไม่จำเป็นต้องอัพโหลดใหม่หากใช้ไฟล์เดิม
-                                        </div>
-                                    </div>
-                                    
-                                    <form onSubmit={submitApplication} className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <FileUploadBox label="สำเนาสูติบัตร" name="birthCert" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
-                                            <FileUploadBox label="บัตรประชาชน (นักเรียน)" name="idCardDoc" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
-                                            <FileUploadBox label="สำเนาทะเบียนบ้าน (นร./บิดา/มารดา)" name="houseReg" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
-                                            <FileUploadBox label="รูปถ่ายหน้าตรง ขนาด 1.5 นิ้ว" name="photo" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
-                                            <div className="md:col-span-2">
-                                                <FileUploadBox label="ใบ ปพ.1 หรือ เอกสารรับรอง" name="transcript" required={true} isEditing={isEditing} filesState={files} onChange={handleFileChange} />
-                                            </div>
-                                        </div>
-
-                                        <div className="flex gap-4 mt-8 pt-6 border-t">
-                                            <button type="button" onClick={() => setStep(2)} disabled={isLoading} className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">ย้อนกลับ</button>
-                                            <button type="submit" disabled={isLoading} className={`flex-1 py-3 text-white rounded-lg font-bold shadow-lg text-lg transition ${isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}`}>
-                                                {isLoading ? <><i className="fas fa-spinner fa-spin mr-2"></i>กำลังบันทึกและสร้างโฟลเดอร์เอกสาร...</> : <><i className="fas fa-save mr-2"></i>บันทึกข้อมูลและอัพโหลดไฟล์</>}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {step === 4 && (
-                            <div className="print-container bg-white shadow-xl rounded mx-auto p-12 text-sm leading-relaxed border border-gray-200 relative">
-                                <div className="no-print absolute top-4 right-4 flex gap-2">
-                                    <button onClick={() => setStep(2)} className="bg-yellow-500 text-white px-4 py-2 rounded shadow hover:bg-yellow-600"><i className="fas fa-edit mr-2"></i>แก้ไขข้อมูล</button>
-                                    <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700"><i className="fas fa-print mr-2"></i>พิมพ์ใบสมัคร (PDF)</button>
-                                    <button onClick={() => window.location.reload()} className="bg-gray-500 text-white px-4 py-2 rounded shadow hover:bg-gray-600"><i className="fas fa-sign-out-alt"></i></button>
-                                </div>
-
-                                <div className="text-center mb-6 relative">
-                                    <img src="https://pakprak.ac.th/wp-content/uploads/2021/10/cropped-cropped-cropped-logonobg-1.png" className="w-16 h-16 mx-auto mb-2 grayscale" alt="Logo"/>
-                                    <h2 className="text-xl font-bold mb-2">ใบสมัครเข้าเรียน โรงเรียนปากแพรกวิทยาคม</h2>
-                                    <div className="absolute top-0 right-0 w-24 h-32 border border-gray-400 flex items-center justify-center text-gray-400 text-xs">ติดรูปถ่าย<br/>1.5 นิ้ว</div>
-                                </div>
-
-                                <div className="mb-4">
-                                    ปีการศึกษา <span className="border-b border-dotted border-gray-400 inline-block w-32 text-center">{new Date().getFullYear() + 543}</span>
-                                    <br/>สมัครเรียนระดับชั้น <span className="border-b border-dotted border-gray-400 inline-block px-4">{formData.level}</span>
-                                </div>
-
-                                <h3 className="font-bold mb-2">๑. ข้อมูลทั่วไปของนักเรียน</h3>
-                                <div className="mb-2">
-                                    ชื่อ-สกุล <span className="border-b border-dotted border-gray-400 inline-block w-64 px-2">{formData.prefix} {formData.firstname} {formData.lastname}</span>
-                                    เพศ <span className="border-b border-dotted border-gray-400 inline-block w-16 px-2 text-center">{formData.gender || '-'}</span>
-                                </div>
-                                <div className="mb-2 flex items-center">
-                                    เลขบัตรประจำตัวประชาชน: 
-                                    <div className="flex ml-2">
-                                        {formData.idCard.split('').map((digit, i) => (
-                                            <div key={i} className="w-5 h-6 border border-gray-500 text-center text-xs leading-6 ml-1">{digit}</div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="mb-2">
-                                    วัน/เดือน/ปีเกิด <span className="border-b border-dotted border-gray-400 inline-block w-48 px-2">{formData.dob ? new Date(formData.dob).toLocaleDateString('th-TH') : '-'}</span>
-                                </div>
-                                <div className="mb-4">
-                                    สัญชาติ <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.nationality}</span>
-                                    ศาสนา <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.religion}</span>
-                                </div>
-
-                                <h3 className="font-bold mb-2">๒. ข้อมูลสำเร็จการศึกษา</h3>
-                                <div className="mb-4">
-                                    สถานศึกษาเดิม <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[150px]">{formData.prevSchool}</span>
-                                    จังหวัด <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[120px]">{formData.prevSchoolProvince}</span>
-                                    จบชั้น <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[80px]">{formData.lastGrade}</span>
-                                </div>
-
-                                <h3 className="font-bold mb-2">๓. ข้อมูลที่อยู่ติดต่อได้</h3>
-                                <div className="mb-2">
-                                    บ้านเลขที่ <span className="border-b border-dotted border-gray-400 inline-block w-16 px-2">{formData.address}</span>
-                                    หมู่ <span className="border-b border-dotted border-gray-400 inline-block w-12 px-2">{formData.moo}</span>
-                                    ถนน <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.road}</span>
-                                    ตำบล/แขวง <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.subdistrict}</span>
-                                </div>
-                                <div className="mb-2">
-                                    อำเภอ/เขต <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.district}</span>
-                                    จังหวัด <span className="border-b border-dotted border-gray-400 inline-block w-40 px-2">{formData.province}</span>
-                                    รหัสไปรษณีย์ <span className="border-b border-dotted border-gray-400 inline-block w-24 px-2">{formData.zipcode}</span>
-                                </div>
-                                <div className="mb-4">
-                                    โทรศัพท์บ้าน <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.homePhone || '-'}</span>
-                                    โทรศัพท์มือถือ <span className="border-b border-dotted border-gray-400 inline-block w-32 px-2">{formData.mobile}</span>
-                                </div>
-
-                                <h3 className="font-bold mb-2">๔. ข้อมูลครอบครัว</h3>
-                                <div className="mb-2">
-                                    ชื่อ-สกุลบิดา <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[200px]">{formData.fatherName || '-'}</span>
-                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.fatherPhone || '-'}</span>
-                                </div>
-                                <div className="mb-2">
-                                    ชื่อ-สกุลมารดา <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[200px]">{formData.motherName || '-'}</span>
-                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.motherPhone || '-'}</span>
-                                </div>
-                                <div className="mb-4">
-                                    สถานภาพ <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[80px]">{formData.parentsStatus}</span>
-                                    ผู้ปกครอง <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[180px]">{formData.guardianName || '-'}</span>
-                                    เบอร์โทร <span className="border-b border-dotted border-gray-400 inline-block px-2 min-w-[100px]">{formData.guardianPhone || '-'}</span>
-                                </div>
-
-                                <div className="mt-12 text-center font-bold">ข้าพเจ้าขอรับรองว่าข้อมูลที่ได้แจ้งไว้ข้างต้น เป็นความจริงทุกประการ</div>
-
-                                <div className="flex justify-between mt-16 px-10">
-                                    <div className="text-center">ลงชื่อ......................................................ผู้สมัคร<br/>(......................................................)<br/>........../........../..........</div>
-                                    <div className="text-center">ลงชื่อ......................................................เจ้าหน้าที่รับสมัคร<br/>(......................................................)<br/>........../........../..........</div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
-            );
-        };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+                <!-- ภูมิลำเนา -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-1">ตำบล <span class="text-red-500">*</span></label>
+                        <input type="text" name="subdistrict" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">อำเภอ <span class="text-red-500">*</span></label>
+                        <input type="text" name="district" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">จังหวัด <span class="text-red-500">*</span></label>
+                        <input type="text" name="province" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                    </div>
+                </div>
+
+                <!-- ข้อมูลโรงเรียนเดิม -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-secondary pl-3">ข้อมูลการศึกษาเดิม</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">จบชั้น (ม.1 หรือ ม.6) จากโรงเรียน <span class="text-red-500">*</span></label>
+                            <input type="text" name="oldSchool" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">จังหวัด (โรงเรียนเดิม) <span class="text-red-500">*</span></label>
+                            <input type="text" name="oldSchoolProvince" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ที่อยู่ตามทะเบียนบ้าน -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-primary pl-3">ข้อมูลที่อยู่ตามทะเบียนบ้าน</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">บ้านเลขที่ <span class="text-red-500">*</span></label>
+                            <input type="text" name="houseNo" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">หมู่ที่ <span class="text-red-500">*</span></label>
+                            <input type="text" name="moo" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">ซอย/ถนน</label>
+                            <input type="text" name="street" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ข้อมูลผู้ปกครองและการติดต่อ -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-secondary pl-3">ข้อมูลผู้ปกครอง และการติดต่อ</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล บิดา</label>
+                            <input type="text" name="fatherName" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล มารดา</label>
+                            <input type="text" name="motherName" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล ผู้ปกครอง <span class="text-red-500">*</span></label>
+                            <input type="text" name="guardianName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">โทรศัพท์ 1 <span class="text-red-500">*</span></label>
+                            <input type="tel" name="phone1" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">โทรศัพท์ 2</label>
+                            <input type="tel" name="phone2" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6">
+                    <button type="submit" class="w-full p-4 bg-gradient-to-r from-primary to-secondary text-white text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl transition transform duration-300 flex justify-center items-center gap-2">
+                        <i class="ph ph-floppy-disk"></i> บันทึกข้อมูลใบสมัคร
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 3. Section: Admin Login -->
+        <section id="section-admin-login" class="max-w-md mx-auto glass-card shadow-xl rounded-3xl p-8 mt-10">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-pink-100 text-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ph ph-lock-key text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบผู้ดูแล</h2>
+                <p class="text-sm text-gray-500 mt-2">กรุณาใส่รหัสผ่านเพื่อเข้าจัดการข้อมูล</p>
+            </div>
+            <form onsubmit="adminLogin(event)" class="space-y-6">
+                <div>
+                    <input type="password" id="admin-password" placeholder="รหัสผ่านผู้ดูแลระบบ" required class="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary text-center text-lg tracking-widest outline-none">
+                </div>
+                <button type="submit" class="w-full p-4 bg-gray-800 text-white font-bold rounded-xl shadow hover:bg-gray-900 transition">
+                    เข้าสู่ระบบ
+                </button>
+            </form>
+        </section>
+
+        <!-- 4. Section: Admin Dashboard -->
+        <section id="section-admin-dashboard" class="glass-card shadow-xl rounded-3xl p-4 md:p-8 w-full max-w-full">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-4">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i class="ph ph-chart-bar text-primary"></i> Dashboard ระบบรับสมัคร</h2>
+                <div class="flex gap-2">
+                    <button onclick="fetchAdminData()" class="px-4 py-2 bg-blue-100 text-primary rounded-lg hover:bg-blue-200 transition text-sm font-medium flex items-center gap-1"><i class="ph ph-arrows-clockwise"></i> รีเฟรช</button>
+                    <button onclick="logoutAdmin()" class="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition text-sm font-medium flex items-center gap-1"><i class="ph ph-sign-out"></i> ออกจากระบบ</button>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div class="grid grid-cols-3 gap-4 mb-8">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 md:p-6 text-white shadow-lg text-center">
+                    <p class="text-blue-100 text-sm md:text-base">ยอดสมัครรวม</p>
+                    <p class="text-3xl md:text-5xl font-bold mt-2" id="stat-total">0</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 md:p-6 text-center shadow border border-gray-100">
+                    <p class="text-gray-500 text-sm md:text-base">ระดับ ม.1</p>
+                    <p class="text-3xl md:text-5xl font-bold mt-2 text-primary" id="stat-m1">0</p>
+                </div>
+                <div class="bg-white rounded-2xl p-4 md:p-6 text-center shadow border border-gray-100">
+                    <p class="text-gray-500 text-sm md:text-base">ระดับ ม.4</p>
+                    <p class="text-3xl md:text-5xl font-bold mt-2 text-secondary" id="stat-m4">0</p>
+                </div>
+            </div>
+
+            <!-- Export Buttons & Tabs -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                <div class="flex bg-gray-100 p-1 rounded-xl">
+                    <button onclick="switchTab('ม.1')" id="tab-m1" class="px-6 py-2 rounded-lg font-medium text-sm transition admin-tab active bg-white shadow text-primary">ข้อมูล ม.1</button>
+                    <button onclick="switchTab('ม.4')" id="tab-m4" class="px-6 py-2 rounded-lg font-medium text-sm transition admin-tab text-gray-500 hover:text-gray-700">ข้อมูล ม.4</button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportCSV('ม.1')" class="px-3 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-download-simple"></i> ม.1 (CSV)</button>
+                    <button onclick="exportCSV('ม.4')" class="px-3 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-download-simple"></i> ม.4 (CSV)</button>
+                    <button onclick="exportCSV('all')" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-file-csv"></i> โหลดทั้งหมด</button>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                            <th class="p-4 font-medium">วันเวลาที่สมัคร</th>
+                            <th class="p-4 font-medium">ชื่อ-นามสกุล</th>
+                            <th class="p-4 font-medium">โรงเรียนเดิม</th>
+                            <th class="p-4 font-medium">โทรศัพท์ 1</th>
+                            <th class="p-4 font-medium">โทรศัพท์ 2</th>
+                        </tr>
+                    </thead>
+                    <tbody id="student-table-body" class="text-sm divide-y divide-gray-100">
+                        <!-- Data will be injected here -->
+                    </tbody>
+                </table>
+                <div id="no-data-msg" class="p-8 text-center text-gray-500 hidden">ไม่มีข้อมูลผู้สมัครในระดับชั้นนี้</div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-white border-t py-6 mt-auto">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
+            &copy; 2026 ระบบรับสมัครนักเรียน. All rights reserved.
+        </div>
+    </footer>
+
+    <!-- Modal สำหรับดูข้อมูลเต็ม -->
+    <div id="student-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                <h3 class="font-bold text-lg text-gray-800">รายละเอียดผู้สมัคร</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-red-500"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto" id="modal-content">
+                <!-- Content Injected -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // =========================================================================
+        // ⚠️ การตั้งค่าระบบ (โปรดอ่าน)
+        // นำ URL ของ Google Web App ที่ได้จากขั้นตอน Publish มาวางในตัวแปรนี้
+        // =========================================================================
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyVnB-rWpX_q3xS2Zq88y-rXq93H8y99-qX/exec'; // <-- เปลี่ยนตรงนี้ ⚠️
+
+        
+        // ตัวแปรเก็บสถานะ
+        let allStudents = [];
+        let currentTab = 'ม.1';
+
+        // เมื่อโหลดหน้าเว็บเสร็จ
+        document.addEventListener('DOMContentLoaded', () => {
+            navigate('home');
+            fetchInstructions();
+        });
+
+        // จัดการการเปลี่ยนหน้าต่าง ๆ
+        function navigate(sectionId) {
+            const sections = ['section-home', 'section-form', 'section-admin-login', 'section-admin-dashboard'];
+            sections.forEach(id => {
+                document.getElementById(id).style.display = (id === `section-${sectionId}`) ? 'block' : 'none';
+            });
+            window.scrollTo(0,0);
+        }
+
+        // จัดการ Loading Overlay
+        function showLoading(text = 'กำลังโหลด...') {
+            document.getElementById('loading-text').innerText = text;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
+        // 1. โหลดคำอธิบายหน้าแรก
+        async function fetchInstructions() {
+            if(SCRIPT_URL.includes('AKfycb')) { // ตรวจสอบว่าเปลี่ยน URL หรือยัง
+                document.getElementById('instruction-content').innerHTML = `
+                    <div class="text-red-500 font-bold mb-2">⚠️ ระบบยังไม่พร้อมใช้งาน</div>
+                    กรุณานำโค้ด Apps Script ไป Deploy และนำ URL มาใส่ในไฟล์ HTML บรรทัดที่ 261 (ตัวแปร SCRIPT_URL)
+                `;
+                return;
+            }
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getSettings`);
+                const data = await res.json();
+                if(data.status === 'success') {
+                    // แปลง \n เป็น <br> สำหรับขึ้นบรรทัดใหม่
+                    document.getElementById('instruction-content').innerHTML = data.instruction.replace(/\n/g, '<br>');
+                }
+            } catch (error) {
+                console.error("Error fetching instructions", error);
+                document.getElementById('instruction-content').innerHTML = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง";
+            }
+        }
+
+        // 2. ส่งแบบฟอร์มสมัครเรียน
+        async function submitForm(e) {
+            e.preventDefault();
+            const form = document.getElementById('admission-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.action = 'submitForm';
+
+            showLoading('กำลังบันทึกข้อมูล...');
+            try {
+                // ใช้ POST method แบบ x-www-form-urlencoded ที่ Apps script รองรับได้ดีสุด
+                const params = new URLSearchParams();
+                for (const key in data) { params.append(key, data[key]); }
+
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: params
+                });
+                
+                const result = await response.json();
+                hideLoading();
+
+                if(result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สมัครสำเร็จ!',
+                        text: 'บันทึกข้อมูลของท่านเรียบร้อยแล้ว',
+                        confirmButtonColor: '#3b82f6'
+                    }).then(() => {
+                        form.reset();
+                        navigate('home');
+                    });
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                hideLoading();
+                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้: ' + error.message, 'error');
+            }
+        }
+
+        // 3. เข้าสู่ระบบแอดมิน
+        async function adminLogin(e) {
+            e.preventDefault();
+            const pwd = document.getElementById('admin-password').value;
+            if(!pwd) return;
+
+            showLoading('กำลังตรวจสอบสิทธิ์...');
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=login&password=${encodeURIComponent(pwd)}`);
+                const data = await res.json();
+                hideLoading();
+
+                if(data.status === 'success') {
+                    // เก็บ Session ง่ายๆ
+                    sessionStorage.setItem('adminToken', pwd);
+                    document.getElementById('admin-password').value = '';
+                    navigate('admin-dashboard');
+                    fetchAdminData();
+                } else {
+                    Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาลองใหม่อีกครั้ง', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                Swal.fire('เชื่อมต่อล้มเหลว', 'โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
+            }
+        }
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('adminToken');
+            navigate('admin-login');
+        }
+
+        // 4. โหลดข้อมูล Dashboard
+        async function fetchAdminData() {
+            const pwd = sessionStorage.getItem('adminToken');
+            if(!pwd) { navigate('admin-login'); return; }
+
+            showLoading('กำลังดึงข้อมูลผู้สมัคร...');
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getStudents&password=${encodeURIComponent(pwd)}`);
+                const data = await res.json();
+                hideLoading();
+
+                if(data.status === 'success') {
+                    allStudents = data.data;
+                    updateDashboardStats();
+                    renderTable();
+                } else {
+                    Swal.fire('ข้อผิดพลาด', 'เซสชั่นหมดอายุ', 'error');
+                    logoutAdmin();
+                }
+            } catch (error) {
+                hideLoading();
+                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถดึงข้อมูลได้', 'error');
+            }
+        }
+
+        function updateDashboardStats() {
+            const m1Count = allStudents.filter(s => s.level === 'ม.1').length;
+            const m4Count = allStudents.filter(s => s.level === 'ม.4').length;
+            
+            document.getElementById('stat-total').innerText = allStudents.length;
+            document.getElementById('stat-m1').innerText = m1Count;
+            document.getElementById('stat-m4').innerText = m4Count;
+        }
+
+        function switchTab(level) {
+            currentTab = level;
+            // Update UI Tab Styles
+            document.querySelectorAll('.admin-tab').forEach(el => {
+                el.classList.remove('bg-white', 'shadow', 'text-primary');
+                el.classList.add('text-gray-500');
+            });
+            const activeId = level === 'ม.1' ? 'tab-m1' : 'tab-m4';
+            document.getElementById(activeId).classList.add('bg-white', 'shadow', 'text-primary');
+            document.getElementById(activeId).classList.remove('text-gray-500');
+            
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('student-table-body');
+            const noDataMsg = document.getElementById('no-data-msg');
+            tbody.innerHTML = '';
+
+            const filteredData = allStudents.filter(s => s.level === currentTab);
+            
+            if(filteredData.length === 0) {
+                noDataMsg.classList.remove('hidden');
+            } else {
+                noDataMsg.classList.add('hidden');
+                filteredData.forEach((student, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-blue-50 cursor-pointer transition border-b";
+                    tr.onclick = () => showStudentDetails(student);
+                    
+                    // Format Date
+                    const d = new Date(student.timestamp);
+                    const dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+                    tr.innerHTML = `
+                        <td class="p-4 text-gray-500">${dateStr}</td>
+                        <td class="p-4 font-medium text-gray-800">${student.prefix}${student.firstName} ${student.lastName}</td>
+                        <td class="p-4">${student.oldSchool}</td>
+                        <td class="p-4">${student.phone1}</td>
+                        <td class="p-4">${student.phone2 || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // 5. แสดงรายละเอียด Modal
+        function showStudentDetails(student) {
+            const content = document.getElementById('modal-content');
+            
+            // Helper เพื่อจัดกลุ่มแสดงข้อมูล
+            const row = (label, val) => `
+                <div class="flex border-b border-gray-100 py-2">
+                    <span class="w-1/3 text-gray-500 font-medium">${label}:</span>
+                    <span class="w-2/3 text-gray-800">${val || '-'}</span>
+                </div>
+            `;
+
+            content.innerHTML = `
+                <div class="mb-4">
+                    <span class="inline-block px-3 py-1 ${student.level==='ม.1' ? 'bg-blue-100 text-primary' : 'bg-pink-100 text-secondary'} rounded-full text-sm font-bold mb-2">สมัครเข้า: ${student.level}</span>
+                </div>
+                <h4 class="font-bold text-primary mb-2 mt-4">ข้อมูลส่วนตัว</h4>
+                ${row('ชื่อ-นามสกุล', `${student.prefix}${student.firstName} ${student.lastName}`)}
+                ${row('ภูมิลำเนา', `ต.${student.subdistrict} อ.${student.district} จ.${student.province}`)}
+                
+                <h4 class="font-bold text-secondary mb-2 mt-6">ประวัติการศึกษา</h4>
+                ${row('จบจากโรงเรียน', student.oldSchool)}
+                ${row('จังหวัดโรงเรียนเดิม', student.oldSchoolProvince)}
+                
+                <h4 class="font-bold text-primary mb-2 mt-6">ที่อยู่ตามทะเบียนบ้าน</h4>
+                ${row('บ้านเลขที่', student.houseNo)}
+                ${row('หมู่ที่', student.moo)}
+                ${row('ซอย/ถนน', student.street)}
+
+                <h4 class="font-bold text-secondary mb-2 mt-6">ข้อมูลผู้ปกครองและการติดต่อ</h4>
+                ${row('ชื่อบิดา', student.fatherName)}
+                ${row('ชื่อมารดา', student.motherName)}
+                ${row('ชื่อผู้ปกครอง', student.guardianName)}
+                ${row('เบอร์โทรศัพท์ 1', student.phone1)}
+                ${row('เบอร์โทรศัพท์ 2', student.phone2)}
+                ${row('เวลาที่สมัคร', new Date(student.timestamp).toLocaleString('th-TH'))}
+            `;
+            
+            document.getElementById('student-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('student-modal').classList.add('hidden');
+        }
+
+        // 6. ส่งออกข้อมูล (Export CSV)
+        function exportCSV(level) {
+            let dataToExport = level === 'all' ? allStudents : allStudents.filter(s => s.level === level);
+            
+            if(dataToExport.length === 0) {
+                Swal.fire('ไม่มีข้อมูล', `ไม่มีข้อมูลสำหรับ ${level} เพื่อส่งออก`, 'info');
+                return;
+            }
+
+            // กำหนด Header (ภาษาไทย)
+            const headers = [
+                'Timestamp', 'ระดับชั้น', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 
+                'ตำบล', 'อำเภอ', 'จังหวัด', 'โรงเรียนเดิม', 'จังหวัดโรงเรียนเดิม',
+                'บ้านเลขที่', 'หมู่ที่', 'ถนน/ซอย', 'ชื่อบิดา', 'ชื่อมารดา', 
+                'ชื่อผู้ปกครอง', 'เบอร์โทร 1', 'เบอร์โทร 2'
+            ];
+
+            // สร้าง CSV string พร้อมป้องกันปัญหาภาษาไทย (BOM)
+            let csvContent = "\uFEFF" + headers.join(",") + "\n";
+
+            dataToExport.forEach(row => {
+                const values = [
+                    `"${new Date(row.timestamp).toLocaleString('th-TH')}"`,
+                    `"${row.level}"`, `"${row.prefix}"`, `"${row.firstName}"`, `"${row.lastName}"`,
+                    `"${row.subdistrict}"`, `"${row.district}"`, `"${row.province}"`,
+                    `"${row.oldSchool}"`, `"${row.oldSchoolProvince}"`,
+                    `"${row.houseNo}"`, `"${row.moo}"`, `"${row.street || ''}"`,
+                    `"${row.fatherName || ''}"`, `"${row.motherName || ''}"`, `"${row.guardianName}"`,
+                    `"${row.phone1}"`, `"${row.phone2 || ''}"`
+                ];
+                csvContent += values.join(",") + "\n";
+            });
+
+            // ดาวน์โหลดไฟล์
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `ข้อมูลรับสมัคร_${level}_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
