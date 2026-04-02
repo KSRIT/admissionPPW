@@ -351,13 +351,6 @@
 
         // 1. โหลดคำอธิบายหน้าแรก
         async function fetchInstructions() {
-            if(SCRIPT_URL.includes('AKfycb')) { // ตรวจสอบว่าเปลี่ยน URL หรือยัง
-                document.getElementById('instruction-content').innerHTML = `
-                    <div class="text-red-500 font-bold mb-2">⚠️ ระบบยังไม่พร้อมใช้งาน</div>
-                    กรุณานำโค้ด Apps Script ไป Deploy และนำ URL มาใส่ในไฟล์ HTML บรรทัดที่ 261 (ตัวแปร SCRIPT_URL)
-                `;
-                return;
-            }
             try {
                 const res = await fetch(`${SCRIPT_URL}?action=getSettings`);
                 const data = await res.json();
