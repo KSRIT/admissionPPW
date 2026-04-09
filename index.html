@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบรับสมัครนักเรียน</title>
-    <!-- Font Kanit -->
+    <title>ระบบมอบตัวนักเรียนออนไลน์</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -21,9 +19,7 @@
             }
         }
     </script>
-    <!-- SweetAlert2 สำหรับแจ้งเตือน -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
@@ -42,20 +38,24 @@
             border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* ซ่อนส่วนต่างๆ เริ่มต้น */
-        #section-form, #section-admin-login, #section-admin-dashboard { display: none; }
-        
-        /* Custom Scrollbar สำหรับรายชื่อ */
+        /* ซ่อน Section ทั้งหมด */
+        section { display: none; }
+        #section-home { display: block; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        
+        /* สไตล์อัปโหลดไฟล์ */
+        .file-upload-wrapper { position: relative; }
+        .file-upload-input { position: absolute; left: 0; top: 0; height: 100%; width: 100%; opacity: 0; cursor: pointer; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 via-white to-pink-50 min-h-screen flex flex-col text-gray-800">
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden">
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 bg-white/90 z-50 flex flex-col items-center justify-center hidden">
         <div class="loader mb-4"></div>
-        <p class="text-secondary font-medium" id="loading-text">กำลังโหลดข้อมูล...</p>
+        <p class="text-secondary font-medium text-lg" id="loading-text">กำลังโหลดข้อมูล...</p>
+        <p class="text-gray-500 text-sm mt-2" id="loading-subtext"></p>
     </div>
 
     <!-- Header -->
@@ -69,505 +69,403 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-grow w-full max-w-4xl mx-auto px-4 py-8">
 
-        <!-- 1. Section: Home (คำอธิบาย) -->
-        <section id="section-home" class="glass-card shadow-xl rounded-3xl p-6 md:p-10 text-center transform transition duration-500">
-            <h1 class="text-2xl md:text-4xl font-bold mb-6 gradient-text">ยินดีต้อนรับสู่ระบบรับสมัครนักเรียน</h1>
-            <div id="instruction-content" class="text-left text-gray-700 bg-blue-50 p-6 rounded-2xl mb-8 leading-relaxed shadow-inner min-h-[150px]">
-                <!-- ข้อความจาก Google Sheet จะมาแสดงที่นี่ -->
-                กำลังดึงข้อมูลระเบียบการรับสมัคร...
+        <!-- 1. Home -->
+        <section id="section-home" class="glass-card shadow-xl rounded-3xl p-6 md:p-10 text-center">
+            <h1 class="text-2xl md:text-4xl font-bold mb-6 gradient-text">ระบบมอบตัวนักเรียนออนไลน์</h1>
+            <div id="instruction-content" class="text-left text-gray-700 bg-blue-50 p-6 rounded-2xl mb-8 shadow-inner min-h-[100px]">
+                กำลังโหลดข้อมูล...
             </div>
-            <button onclick="navigate('form')" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full shadow-lg hover:shadow-2xl hover:scale-105 transition transform duration-300 flex items-center justify-center gap-2 mx-auto text-lg">
-                <i class="ph ph-pencil-simple text-2xl"></i> กรอกใบสมัครออนไลน์
+            <button onclick="navigate('verify')" class="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-full shadow-lg hover:shadow-2xl hover:scale-105 transition transform duration-300 flex items-center justify-center gap-2 mx-auto text-lg">
+                <i class="ph ph-check-circle text-2xl"></i> ดำเนินการมอบตัวออนไลน์
             </button>
-
-            <!-- รายชื่อผู้สมัคร (แสดงแค่ชื่อ) -->
-            <div class="mt-12 text-left pt-8 border-t border-gray-100">
-                <h3 class="text-xl md:text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2 justify-center md:justify-start">
-                    <i class="ph ph-users text-primary"></i> รายชื่อผู้สมัครล่าสุด
-                </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- ม.1 -->
-                    <div class="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-inner">
-                        <h4 class="font-bold text-primary mb-4 flex items-center gap-2 pb-2 border-b border-blue-200">
-                            <span class="w-2 h-2 rounded-full bg-primary"></span> มัธยมศึกษาปีที่ 1
-                        </h4>
-                        <ul id="public-list-m1" class="space-y-3 text-sm text-gray-700 h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            <li class="text-gray-400 italic text-center py-4">กำลังโหลด...</li>
-                        </ul>
-                    </div>
-                    <!-- ม.4 -->
-                    <div class="bg-pink-50 p-5 rounded-2xl border border-pink-100 shadow-inner">
-                        <h4 class="font-bold text-secondary mb-4 flex items-center gap-2 pb-2 border-b border-pink-200">
-                            <span class="w-2 h-2 rounded-full bg-secondary"></span> มัธยมศึกษาปีที่ 4
-                        </h4>
-                        <ul id="public-list-m4" class="space-y-3 text-sm text-gray-700 h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            <li class="text-gray-400 italic text-center py-4">กำลังโหลด...</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </section>
 
-        <!-- 2. Section: Application Form -->
-        <section id="section-form" class="glass-card shadow-xl rounded-3xl p-6 md:p-10">
+        <!-- 2. Verify Name -->
+        <section id="section-verify" class="glass-card shadow-xl rounded-3xl p-6 md:p-10 max-w-md mx-auto mt-10">
             <div class="flex items-center gap-3 mb-6 border-b pb-4">
                 <button onclick="navigate('home')" class="text-gray-400 hover:text-gray-600"><i class="ph ph-arrow-left text-2xl"></i></button>
-                <h2 class="text-2xl md:text-3xl font-bold gradient-text">แบบฟอร์มข้อมูลผู้สมัคร</h2>
+                <h2 class="text-2xl font-bold gradient-text">ตรวจสอบรายชื่อ</h2>
             </div>
-
-            <form id="admission-form" onsubmit="submitForm(event)" class="space-y-8">
-                <!-- ระดับชั้นที่สมัคร -->
-                <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
-                    <h3 class="text-lg font-semibold text-primary mb-4 flex items-center gap-2"><i class="ph ph-graduation-cap"></i> ระดับชั้นที่ต้องการสมัคร</h3>
-                    <div class="flex flex-col sm:flex-row gap-4">
-                        <label class="flex-1 cursor-pointer">
-                            <input type="radio" name="level" value="ม.1" required class="peer hidden">
-                            <div class="p-4 bg-white border-2 border-gray-200 rounded-xl peer-checked:border-primary peer-checked:bg-blue-50 peer-checked:text-primary text-center font-medium transition shadow-sm">มัธยมศึกษาปีที่ 1 (ม.1)</div>
-                        </label>
-                        <label class="flex-1 cursor-pointer">
-                            <input type="radio" name="level" value="ม.4" required class="peer hidden">
-                            <div class="p-4 bg-white border-2 border-gray-200 rounded-xl peer-checked:border-secondary peer-checked:bg-pink-50 peer-checked:text-secondary text-center font-medium transition shadow-sm">มัธยมศึกษาปีที่ 4 (ม.4)</div>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- ข้อมูลส่วนตัว -->
+            <form onsubmit="verifyStudent(event)" class="space-y-4">
+                <p class="text-sm text-gray-500 mb-4">กรุณากรอกชื่อและนามสกุลให้ตรงกับที่ได้สมัครไว้</p>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-primary pl-3">ข้อมูลส่วนตัวนักเรียน</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-1">
-                            <label class="block text-sm font-medium mb-1">คำนำหน้า <span class="text-red-500">*</span></label>
-                            <select name="prefix" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none">
-                                <option value="">เลือก</option>
-                                <option value="เด็กชาย">เด็กชาย</option>
-                                <option value="เด็กหญิง">เด็กหญิง</option>
-                                <option value="นาย">นาย</option>
-                                <option value="นางสาว">นางสาว</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-1">
-                            <label class="block text-sm font-medium mb-1">ชื่อ <span class="text-red-500">*</span></label>
-                            <input type="text" name="firstName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                        </div>
-                        <div class="md:col-span-1">
-                            <label class="block text-sm font-medium mb-1">นามสกุล <span class="text-red-500">*</span></label>
-                            <input type="text" name="lastName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                        </div>
-                    </div>
-                    <!-- เพิ่มช่องกรอกเลขบัตรประชาชน -->
-                    <div class="mt-4">
-                        <label class="block text-sm font-medium mb-1">เลขประจำตัวประชาชน 13 หลัก <span class="text-red-500">*</span></label>
-                        <input type="text" name="idCard" required pattern="\d{13}" maxlength="13" title="กรุณากรอกตัวเลข 13 หลัก" placeholder="xxxxxxxxxxxxx" class="w-full md:w-1/2 p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                    </div>
+                    <label class="block text-sm font-medium mb-1">ชื่อ (ไม่ต้องระบุคำนำหน้า)</label>
+                    <input type="text" id="v-firstname" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
                 </div>
-
-                <!-- ภูมิลำเนา -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">ตำบล <span class="text-red-500">*</span></label>
-                        <input type="text" name="subdistrict" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">อำเภอ <span class="text-red-500">*</span></label>
-                        <input type="text" name="district" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">จังหวัด <span class="text-red-500">*</span></label>
-                        <input type="text" name="province" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                    </div>
-                </div>
-
-                <!-- ข้อมูลโรงเรียนเดิม -->
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-secondary pl-3">ข้อมูลการศึกษาเดิม</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">จบชั้น (ป.6 หรือ ม.3) จากโรงเรียน <span class="text-red-500">*</span></label>
-                            <input type="text" name="oldSchool" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">จังหวัด (โรงเรียนเดิม) <span class="text-red-500">*</span></label>
-                            <input type="text" name="oldSchoolProvince" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                    </div>
+                    <label class="block text-sm font-medium mb-1">นามสกุล</label>
+                    <input type="text" id="v-lastname" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
                 </div>
-
-                <!-- ที่อยู่ตามทะเบียนบ้าน -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-primary pl-3">ข้อมูลที่อยู่ตามทะเบียนบ้าน</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">บ้านเลขที่ <span class="text-red-500">*</span></label>
-                            <input type="text" name="houseNo" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">หมู่ที่ <span class="text-red-500">*</span></label>
-                            <input type="text" name="moo" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">ซอย/ถนน</label>
-                            <input type="text" name="street" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary outline-none">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ข้อมูลผู้ปกครองและการติดต่อ -->
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-l-4 border-secondary pl-3">ข้อมูลผู้ปกครอง และการติดต่อ</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล บิดา</label>
-                            <input type="text" name="fatherName" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล มารดา</label>
-                            <input type="text" name="motherName" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล ผู้ปกครอง <span class="text-red-500">*</span></label>
-                            <input type="text" name="guardianName" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">โทรศัพท์ 1 <span class="text-red-500">*</span></label>
-                            <input type="tel" name="phone1" required class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1">โทรศัพท์ 2</label>
-                            <input type="tel" name="phone2" class="w-full p-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary outline-none">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="pt-6">
-                    <button type="submit" class="w-full p-4 bg-gradient-to-r from-primary to-secondary text-white text-xl font-bold rounded-2xl shadow-lg hover:shadow-xl transition transform duration-300 flex justify-center items-center gap-2">
-                        <i class="ph ph-floppy-disk"></i> บันทึกข้อมูลใบสมัคร
-                    </button>
-                </div>
-            </form>
-        </section>
-
-        <!-- 3. Section: Admin Login -->
-        <section id="section-admin-login" class="max-w-md mx-auto glass-card shadow-xl rounded-3xl p-8 mt-10">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-pink-100 text-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="ph ph-lock-key text-3xl"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-800">เข้าสู่ระบบผู้ดูแล</h2>
-                <p class="text-sm text-gray-500 mt-2">กรุณาใส่รหัสผ่านเพื่อเข้าจัดการข้อมูล</p>
-            </div>
-            <form onsubmit="adminLogin(event)" class="space-y-6">
-                <div>
-                    <input type="password" id="admin-password" placeholder="รหัสผ่านผู้ดูแลระบบ" required class="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-secondary text-center text-lg tracking-widest outline-none">
-                </div>
-                <button type="submit" class="w-full p-4 bg-gray-800 text-white font-bold rounded-xl shadow hover:bg-gray-900 transition">
-                    เข้าสู่ระบบ
+                <button type="submit" class="w-full p-4 bg-primary text-white font-bold rounded-xl shadow-lg hover:bg-blue-600 transition mt-4">
+                    ตรวจสอบสิทธิ์
                 </button>
             </form>
         </section>
 
-        <!-- 4. Section: Admin Dashboard -->
+        <!-- 3. Upload Documents -->
+        <section id="section-upload" class="glass-card shadow-xl rounded-3xl p-6 md:p-10">
+            <div class="flex items-center justify-between mb-6 border-b pb-4">
+                <h2 class="text-2xl md:text-3xl font-bold gradient-text">ขั้นตอนที่ 1: แนบเอกสารมอบตัว</h2>
+                <span class="text-primary font-bold bg-blue-100 px-3 py-1 rounded-full text-sm">ผู้มอบตัว: <span id="display-student-name"></span></span>
+            </div>
+            <p class="text-red-500 text-sm mb-6 bg-red-50 p-3 rounded-lg"><i class="ph ph-info"></i> สามารถกด "ถัดไป" ได้แม้เอกสารไม่ครบ (ระบบจะบันทึกเท่าที่แนบ)</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8" id="document-inputs">
+                <!-- Inputs generated by JS -->
+            </div>
+
+            <div class="flex justify-end gap-4 border-t pt-6">
+                <button onclick="goToPayment()" class="px-8 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition flex items-center gap-2">
+                    ถัดไป (ชำระเงิน) <i class="ph ph-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 4. Payment -->
+        <section id="section-payment" class="glass-card shadow-xl rounded-3xl p-6 md:p-10">
+            <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                <button onclick="navigate('upload')" class="text-gray-400 hover:text-gray-600"><i class="ph ph-arrow-left text-2xl"></i></button>
+                <h2 class="text-2xl md:text-3xl font-bold gradient-text">ขั้นตอนที่ 2: ชำระเงิน</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- ฝั่งซ้าย รายละเอียดและ QR -->
+                <div class="space-y-6">
+                    <div class="bg-gray-50 p-4 rounded-2xl border text-center">
+                        <h3 class="font-bold text-gray-700 mb-2">รายละเอียดค่าใช้จ่าย</h3>
+                        <img id="img-payment-info" src="" alt="Payment Info" class="w-full h-auto rounded-lg shadow-sm mx-auto mb-2 bg-white">
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+                        <h3 class="font-bold text-primary mb-2">สแกนเพื่อชำระเงิน</h3>
+                        <img id="img-payment-qr" src="" alt="QR Code" class="w-48 h-auto rounded-lg shadow-md mx-auto bg-white p-2">
+                    </div>
+                </div>
+
+                <!-- ฝั่งขวา เลือกรายการและสลิป -->
+                <div class="space-y-6">
+                    <div class="bg-white p-5 rounded-2xl border shadow-sm">
+                        <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">เลือกรายการที่ชำระ <span class="text-red-500">*</span></h3>
+                        <div id="payment-items-container" class="space-y-2">
+                            <!-- Checkboxes generated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="bg-pink-50 p-5 rounded-2xl border border-pink-100">
+                        <h3 class="font-bold text-secondary mb-3"><i class="ph ph-receipt"></i> แนบสลิปโอนเงิน <span class="text-red-500">*</span></h3>
+                        <div class="file-upload-wrapper bg-white border-2 border-dashed border-secondary rounded-xl p-6 text-center hover:bg-pink-50 transition">
+                            <input type="file" id="slip-file" accept="image/*,.pdf" class="file-upload-input" onchange="updateFileName(this, 'slip-name')">
+                            <i class="ph ph-upload-simple text-3xl text-secondary mb-2"></i>
+                            <p class="text-sm text-gray-600" id="slip-name">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="submitEnrollment()" class="w-full p-4 bg-green-500 text-white text-xl font-bold rounded-2xl shadow-lg hover:bg-green-600 transition flex items-center justify-center gap-2">
+                        <i class="ph ph-check-circle"></i> ยืนยันการมอบตัวเสร็จสิ้น
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Admin Dashboard -->
         <section id="section-admin-dashboard" class="glass-card shadow-xl rounded-3xl p-4 md:p-8 w-full max-w-full">
+            <!-- (โครงสร้างคล้ายเดิม ปรับฟิลด์ที่แสดง) -->
             <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b pb-4">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2"><i class="ph ph-chart-bar text-primary"></i> Dashboard ระบบรับสมัคร</h2>
+                <h2 class="text-2xl font-bold text-gray-800"><i class="ph ph-shield-check text-primary"></i> ระบบจัดการมอบตัว</h2>
                 <div class="flex gap-2">
-                    <button onclick="fetchAdminData()" class="px-4 py-2 bg-blue-100 text-primary rounded-lg hover:bg-blue-200 transition text-sm font-medium flex items-center gap-1"><i class="ph ph-arrows-clockwise"></i> รีเฟรช</button>
-                    <button onclick="logoutAdmin()" class="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition text-sm font-medium flex items-center gap-1"><i class="ph ph-sign-out"></i> ออกจากระบบ</button>
+                    <button onclick="fetchAdminData()" class="px-4 py-2 bg-blue-100 text-primary rounded-lg text-sm font-medium">รีเฟรช</button>
+                    <button onclick="logoutAdmin()" class="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium">ออกจากระบบ</button>
                 </div>
             </div>
 
-            <!-- Stats Summary -->
-            <div class="grid grid-cols-3 gap-4 mb-8">
-                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 md:p-6 text-white shadow-lg text-center">
-                    <p class="text-blue-100 text-sm md:text-base">ยอดสมัครรวม</p>
-                    <p class="text-3xl md:text-5xl font-bold mt-2" id="stat-total">0</p>
-                </div>
-                <div class="bg-white rounded-2xl p-4 md:p-6 text-center shadow border border-gray-100">
-                    <p class="text-gray-500 text-sm md:text-base">ระดับ ม.1</p>
-                    <p class="text-3xl md:text-5xl font-bold mt-2 text-primary" id="stat-m1">0</p>
-                </div>
-                <div class="bg-white rounded-2xl p-4 md:p-6 text-center shadow border border-gray-100">
-                    <p class="text-gray-500 text-sm md:text-base">ระดับ ม.4</p>
-                    <p class="text-3xl md:text-5xl font-bold mt-2 text-secondary" id="stat-m4">0</p>
-                </div>
-            </div>
-
-            <!-- Export Buttons & Tabs -->
             <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <div class="flex bg-gray-100 p-1 rounded-xl">
-                    <button onclick="switchTab('ม.1')" id="tab-m1" class="px-6 py-2 rounded-lg font-medium text-sm transition admin-tab active bg-white shadow text-primary">ข้อมูล ม.1</button>
-                    <button onclick="switchTab('ม.4')" id="tab-m4" class="px-6 py-2 rounded-lg font-medium text-sm transition admin-tab text-gray-500 hover:text-gray-700">ข้อมูล ม.4</button>
+                    <button onclick="switchTab('ม.1')" id="tab-m1" class="px-6 py-2 rounded-lg text-sm admin-tab active bg-white shadow text-primary">ม.1</button>
+                    <button onclick="switchTab('ม.4')" id="tab-m4" class="px-6 py-2 rounded-lg text-sm admin-tab text-gray-500">ม.4</button>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="exportCSV('ม.1')" class="px-3 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-download-simple"></i> ม.1 (CSV)</button>
-                    <button onclick="exportCSV('ม.4')" class="px-3 py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg hover:bg-green-100 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-download-simple"></i> ม.4 (CSV)</button>
-                    <button onclick="exportCSV('all')" class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium flex items-center gap-1"><i class="ph ph-file-csv"></i> โหลดทั้งหมด</button>
-                </div>
+                <button onclick="exportEnrollmentCSV()" class="px-3 py-2 bg-green-600 text-white rounded-lg text-xs flex items-center gap-1"><i class="ph ph-file-csv"></i> โหลดข้อมูล CSV</button>
             </div>
 
-            <!-- Data Table -->
             <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">
-                <table class="w-full text-left border-collapse whitespace-nowrap">
+                <table class="w-full text-left whitespace-nowrap">
                     <thead>
                         <tr class="bg-gray-50 text-gray-600 text-sm border-b">
-                            <th class="p-4 font-medium">วันเวลาที่สมัคร</th>
-                            <th class="p-4 font-medium">ชื่อ-นามสกุล</th>
-                            <th class="p-4 font-medium">โรงเรียนเดิม</th>
-                            <th class="p-4 font-medium">โทรศัพท์ 1</th>
-                            <th class="p-4 font-medium">โทรศัพท์ 2</th>
+                            <th class="p-4">ชื่อ-นามสกุล</th>
+                            <th class="p-4">สถานะมอบตัว</th>
+                            <th class="p-4">เอกสาร</th>
+                            <th class="p-4">การชำระเงิน</th>
+                            <th class="p-4">สลิป</th>
                         </tr>
                     </thead>
-                    <tbody id="student-table-body" class="text-sm divide-y divide-gray-100">
-                        <!-- Data will be injected here -->
-                    </tbody>
+                    <tbody id="admin-table-body" class="text-sm divide-y divide-gray-100"></tbody>
                 </table>
-                <div id="no-data-msg" class="p-8 text-center text-gray-500 hidden">ไม่มีข้อมูลผู้สมัครในระดับชั้นนี้</div>
             </div>
+        </section>
+        
+        <!-- Login Section -->
+        <section id="section-admin-login" class="max-w-md mx-auto glass-card shadow-xl rounded-3xl p-8 mt-10">
+            <h2 class="text-2xl font-bold text-center mb-6">เข้าสู่ระบบผู้ดูแล</h2>
+            <input type="password" id="admin-password" placeholder="รหัสผ่าน" class="w-full p-4 rounded-xl border text-center outline-none mb-4">
+            <button onclick="adminLogin()" class="w-full p-4 bg-gray-800 text-white font-bold rounded-xl">เข้าสู่ระบบ</button>
         </section>
 
     </main>
 
-    <footer class="bg-white border-t py-6 mt-auto">
-        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-            &copy; 2026 ระบบรับสมัครนักเรียน. All rights reserved.
-        </div>
-    </footer>
-
-    <!-- Modal สำหรับดูข้อมูลเต็ม -->
+    <!-- Modal Admin -->
     <div id="student-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-2xl">
-                <h3 class="font-bold text-lg text-gray-800">รายละเอียดผู้สมัคร</h3>
+                <h3 class="font-bold text-lg text-gray-800">รายละเอียดการมอบตัว</h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-red-500"><i class="ph ph-x text-xl"></i></button>
             </div>
-            <div class="p-6 overflow-y-auto" id="modal-content">
-                <!-- Content Injected -->
-            </div>
+            <div class="p-6 overflow-y-auto" id="modal-content"></div>
         </div>
     </div>
 
-    <!-- JavaScript Logic -->
     <script>
         // =========================================================================
-        // ⚠️ การตั้งค่าระบบ (โปรดอ่าน)
-        // นำ URL ของ Google Web App ที่ได้จากขั้นตอน Publish มาวางในตัวแปรนี้
+        // ⚠️ วาง URL Web App ของคุณที่นี่
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtihOy6m-J8jIt_Tfz2vUgKfIbSdJ86AUOWKa4i9nxHgReb_kSquIe_aalJXTH6_8EXw/exec';
         // =========================================================================
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtihOy6m-J8jIt_Tfz2vUgKfIbSdJ86AUOWKa4i9nxHgReb_kSquIe_aalJXTH6_8EXw/exec'; // <-- เปลี่ยนตรงนี้ ⚠️
 
-        
-        // ตัวแปรเก็บสถานะ
+        const docList = [
+            { id: 'doc1', name: 'สูจิบัตรนักเรียน' },
+            { id: 'doc2', name: 'บัตรประชาชนนักเรียน (รับรองสำเนา)' },
+            { id: 'doc3', name: 'ทะเบียนบ้านนักเรียน (รับรองสำเนา)' },
+            { id: 'doc4', name: 'ทะเบียนบ้านบิดา (รับรองสำเนา)' },
+            { id: 'doc5', name: 'ทะเบียนบ้านมารดา (รับรองสำเนา)' },
+            { id: 'doc6', name: 'ทะเบียนบ้านผู้ปกครอง (รับรองสำเนา)' },
+            { id: 'doc7', name: 'รูปถ่ายหน้าตรง' },
+            { id: 'doc8', name: 'เอกสารใบ ปพ. / ใบรับรองผลการเรียน' }
+        ];
+
+        let currentStudent = null; // เก็บข้อมูลคนที่กำลังมอบตัว
+        let settingsData = {};
         let allStudents = [];
         let currentTab = 'ม.1';
 
-        // เมื่อโหลดหน้าเว็บเสร็จ
         document.addEventListener('DOMContentLoaded', () => {
+            renderDocInputs();
             navigate('home');
-            fetchInstructions();
-            fetchPublicNames();
+            fetchInitialData();
         });
 
-        // จัดการการเปลี่ยนหน้าต่าง ๆ
-        function navigate(sectionId) {
-            const sections = ['section-home', 'section-form', 'section-admin-login', 'section-admin-dashboard'];
-            sections.forEach(id => {
-                document.getElementById(id).style.display = (id === `section-${sectionId}`) ? 'block' : 'none';
-            });
+        function navigate(section) {
+            document.querySelectorAll('section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${section}`).style.display = 'block';
             window.scrollTo(0,0);
         }
 
-        // จัดการ Loading Overlay
-        function showLoading(text = 'กำลังโหลด...') {
+        function showLoading(text, subtext = '') {
             document.getElementById('loading-text').innerText = text;
+            document.getElementById('loading-subtext').innerText = subtext;
             document.getElementById('loading-overlay').classList.remove('hidden');
         }
         function hideLoading() {
             document.getElementById('loading-overlay').classList.add('hidden');
         }
 
-        // 1. โหลดคำอธิบายหน้าแรก
-        async function fetchInstructions() {
+        // แปลง URL Google Drive ให้เป็นแบบฝังรูปได้
+        function parseDriveUrl(url) {
+            if(!url) return '';
+            let match = url.match(/\/d\/(.+?)\//);
+            if(match && match[1]) {
+                return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+            }
+            return url;
+        }
+
+        async function fetchInitialData() {
             try {
-                const res = await fetch(`${SCRIPT_URL}?action=getSettings`);
+                const res = await fetch(`${SCRIPT_URL}?action=getEnrollSettings`);
                 const data = await res.json();
                 if(data.status === 'success') {
-                    // แปลง \n เป็น <br> สำหรับขึ้นบรรทัดใหม่
-                    document.getElementById('instruction-content').innerHTML = data.instruction.replace(/\n/g, '<br>');
+                    settingsData = data.settings;
+                    document.getElementById('instruction-content').innerHTML = settingsData.instruction.replace(/\n/g, '<br>');
+                    
+                    // เตรียมหน้า Payment
+                    document.getElementById('img-payment-info').src = parseDriveUrl(settingsData.payInfoUrl);
+                    document.getElementById('img-payment-qr').src = parseDriveUrl(settingsData.payQrUrl);
+                    
+                    // สร้าง Checkboxes
+                    const itemsContainer = document.getElementById('payment-items-container');
+                    itemsContainer.innerHTML = '';
+                    settingsData.payItems.forEach((item, index) => {
+                        if(item.trim() !== '') {
+                            itemsContainer.innerHTML += `
+                                <label class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition border border-gray-200">
+                                    <input type="checkbox" name="payItem" value="${item}" class="w-5 h-5 text-primary rounded focus:ring-primary">
+                                    <span class="text-gray-700 font-medium">${item}</span>
+                                </label>`;
+                        }
+                    });
                 }
             } catch (error) {
-                console.error("Error fetching instructions", error);
-                document.getElementById('instruction-content').innerHTML = "ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง";
+                console.error(error);
             }
         }
 
-        // โหลดรายชื่อผู้สมัคร (เฉพาะชื่อ) มาแสดงหน้าแรก
-        async function fetchPublicNames() {
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=getPublicNames`);
-                const data = await res.json();
-                if(data.status === 'success') {
-                    renderPublicNames(data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching public names", error);
-                document.getElementById('public-list-m1').innerHTML = '<li class="text-red-400 italic text-center py-4">โหลดข้อมูลไม่สำเร็จ</li>';
-                document.getElementById('public-list-m4').innerHTML = '<li class="text-red-400 italic text-center py-4">โหลดข้อมูลไม่สำเร็จ</li>';
-            }
-        }
-
-        // จัดการแสดงผลรายชื่อ
-        function renderPublicNames(students) {
-            const listM1 = document.getElementById('public-list-m1');
-            const listM4 = document.getElementById('public-list-m4');
-            
-            listM1.innerHTML = '';
-            listM4.innerHTML = '';
-
-            const m1Students = students.filter(s => s.level === 'ม.1');
-            const m4Students = students.filter(s => s.level === 'ม.4');
-
-            if (m1Students.length === 0) listM1.innerHTML = '<li class="text-gray-400 italic text-center py-4">ยังไม่มีผู้สมัคร</li>';
-            if (m4Students.length === 0) listM4.innerHTML = '<li class="text-gray-400 italic text-center py-4">ยังไม่มีผู้สมัคร</li>';
-
-            m1Students.forEach(s => {
-                listM1.innerHTML += `
-                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-50">
-                        <div class="w-8 h-8 rounded-full bg-blue-100 text-primary flex items-center justify-center shrink-0">
-                            <i class="ph ph-user"></i>
-                        </div>
-                        <span class="font-medium text-gray-700">${s.name}</span>
-                    </li>`;
-            });
-
-            m4Students.forEach(s => {
-                listM4.innerHTML += `
-                    <li class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-50">
-                        <div class="w-8 h-8 rounded-full bg-pink-100 text-secondary flex items-center justify-center shrink-0">
-                            <i class="ph ph-user"></i>
-                        </div>
-                        <span class="font-medium text-gray-700">${s.name}</span>
-                    </li>`;
-            });
-        }
-
-        // 2. ส่งแบบฟอร์มสมัครเรียน
-        async function submitForm(e) {
+        // --- STEP 1: Verify ---
+        async function verifyStudent(e) {
             e.preventDefault();
-            const form = document.getElementById('admission-form');
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            data.action = 'submitForm';
+            const fname = document.getElementById('v-firstname').value.trim();
+            const lname = document.getElementById('v-lastname').value.trim();
 
-            showLoading('กำลังบันทึกข้อมูล...');
+            showLoading('กำลังตรวจสอบข้อมูล...');
             try {
-                // ใช้ POST method แบบ x-www-form-urlencoded ที่ Apps script รองรับได้ดีสุด
-                const params = new URLSearchParams();
-                for (const key in data) { params.append(key, data[key]); }
+                const res = await fetch(`${SCRIPT_URL}?action=verifyName&fname=${fname}&lname=${lname}`);
+                const data = await res.json();
+                hideLoading();
+
+                if(data.status === 'success') {
+                    if(data.isEnrolled) {
+                        Swal.fire('แจ้งเตือน', 'นักเรียนคนนี้ได้ทำการมอบตัวเรียบร้อยแล้ว', 'info');
+                    } else {
+                        currentStudent = data.student; // {rowId, name}
+                        document.getElementById('display-student-name').innerText = currentStudent.name;
+                        navigate('upload');
+                    }
+                } else {
+                    Swal.fire('ไม่พบข้อมูล', 'ไม่พบรายชื่อนี้ในระบบ กรุณาตรวจสอบการสะกดชื่ออีกครั้ง', 'error');
+                }
+            } catch (error) {
+                hideLoading();
+                Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อขัดข้อง', 'error');
+            }
+        }
+
+        // --- STEP 2: Upload Docs ---
+        function renderDocInputs() {
+            const container = document.getElementById('document-inputs');
+            docList.forEach(doc => {
+                container.innerHTML += `
+                    <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col justify-between">
+                        <label class="font-medium text-gray-700 mb-2 text-sm">${doc.name}</label>
+                        <div class="file-upload-wrapper bg-white border border-dashed border-gray-300 rounded-lg p-2 text-center">
+                            <input type="file" id="${doc.id}" accept="image/*,.pdf" class="file-upload-input" onchange="updateFileName(this, 'label-${doc.id}')">
+                            <p class="text-xs text-gray-500 truncate px-2" id="label-${doc.id}">+ เลือกไฟล์</p>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function updateFileName(input, labelId) {
+            const label = document.getElementById(labelId);
+            if(input.files && input.files[0]) {
+                label.innerText = input.files[0].name;
+                label.classList.add('text-primary', 'font-medium');
+            } else {
+                label.innerText = labelId.includes('slip') ? 'คลิกเพื่อเลือกไฟล์' : '+ เลือกไฟล์';
+                label.classList.remove('text-primary', 'font-medium');
+            }
+        }
+
+        function goToPayment() {
+            navigate('payment');
+        }
+
+        // ฟังก์ชันอ่านไฟล์เป็น Base64
+        function getBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({
+                    name: file.name,
+                    type: file.type,
+                    data: reader.result.split(',')[1] // เอาแค่เนื้อหา
+                });
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // --- STEP 3: Submit Payment & All Data ---
+        async function submitEnrollment() {
+            // เช็คสลิป
+            const slipInput = document.getElementById('slip-file');
+            if(!slipInput.files[0]) {
+                return Swal.fire('กรุณาแนบสลิป', 'โปรดแนบสลิปโอนเงินเพื่อยืนยัน', 'warning');
+            }
+
+            // เช็ครายการจ่าย
+            const checkedItems = Array.from(document.querySelectorAll('input[name="payItem"]:checked')).map(el => el.value);
+            if(checkedItems.length === 0) {
+                return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกรายการค่าใช้จ่ายที่ชำระ', 'warning');
+            }
+
+            showLoading('กำลังบันทึกข้อมูลและอัปโหลดไฟล์...', 'กระบวนการนี้อาจใช้เวลา 1-2 นาที โปรดอย่าปิดหน้าจอ');
+
+            try {
+                // รวบรวมไฟล์ทั้งหมด
+                let filesToUpload = [];
+                
+                // 1. เอกสาร 8 อย่าง
+                for(let i=0; i<docList.length; i++) {
+                    const fileInput = document.getElementById(docList[i].id);
+                    if(fileInput.files[0]) {
+                        const fileData = await getBase64(fileInput.files[0]);
+                        fileData.docType = `doc${i+1}`; // กำหนดประเภทให้ฝั่งหลังบ้านรู้
+                        filesToUpload.push(fileData);
+                    }
+                }
+                
+                // 2. สลิป
+                const slipData = await getBase64(slipInput.files[0]);
+                slipData.docType = 'slip';
+                filesToUpload.push(slipData);
+
+                // สร้าง Payload
+                const payload = {
+                    action: 'submitEnrollment',
+                    rowId: currentStudent.rowId,
+                    studentName: currentStudent.name,
+                    payItems: checkedItems.join(', '),
+                    files: filesToUpload
+                };
 
                 const response = await fetch(SCRIPT_URL, {
                     method: 'POST',
-                    body: params
+                    body: JSON.stringify(payload) // ส่งเป็น JSON ก้อนเดียว
                 });
                 
                 const result = await response.json();
                 hideLoading();
 
                 if(result.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'สมัครสำเร็จ!',
-                        text: 'บันทึกข้อมูลของท่านเรียบร้อยแล้ว',
-                        confirmButtonColor: '#3b82f6'
-                    }).then(() => {
-                        form.reset();
-                        navigate('home');
-                        fetchPublicNames(); // รีเฟรชรายชื่อใหม่หลังจากสมัครเสร็จ
+                    Swal.fire('สำเร็จ!', 'บันทึกข้อมูลการมอบตัวของท่านเรียบร้อยแล้ว', 'success').then(() => {
+                        window.location.reload(); // รีเซ็ตหน้า
                     });
                 } else {
-                    // --- ดักจับ Error กรณีชื่อซ้ำ ---
-                    if (result.message === 'มีการสมัครเรียนแล้ว') {
-                        Swal.fire('ไม่สามารถสมัครได้', 'ชื่อ-นามสกุลนี้ มีการสมัครเรียนแล้วในระบบ', 'warning');
-                    } else {
-                        throw new Error(result.message);
-                    }
+                    throw new Error(result.message);
                 }
+
             } catch (error) {
                 hideLoading();
-                Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้: ' + error.message, 'error');
+                Swal.fire('เกิดข้อผิดพลาด', error.message || 'ไฟล์อาจมีขนาดใหญ่เกินไป หรือการเชื่อมต่อขัดข้อง', 'error');
             }
         }
 
-        // 3. เข้าสู่ระบบแอดมิน
-        async function adminLogin(e) {
-            e.preventDefault();
+        // --- Admin Dashboard ---
+        async function adminLogin() {
             const pwd = document.getElementById('admin-password').value;
             if(!pwd) return;
-
-            showLoading('กำลังตรวจสอบสิทธิ์...');
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=login&password=${encodeURIComponent(pwd)}`);
-                const data = await res.json();
-                hideLoading();
-
-                if(data.status === 'success') {
-                    // เก็บ Session ง่ายๆ
-                    sessionStorage.setItem('adminToken', pwd);
-                    document.getElementById('admin-password').value = '';
-                    navigate('admin-dashboard');
-                    fetchAdminData();
-                } else {
-                    Swal.fire('รหัสผ่านไม่ถูกต้อง', 'กรุณาลองใหม่อีกครั้ง', 'error');
-                }
-            } catch (error) {
-                hideLoading();
-                Swal.fire('เชื่อมต่อล้มเหลว', 'โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ต', 'error');
+            showLoading('ตรวจสอบสิทธิ์...');
+            const res = await fetch(`${SCRIPT_URL}?action=login&password=${encodeURIComponent(pwd)}`);
+            const data = await res.json();
+            hideLoading();
+            if(data.status === 'success') {
+                sessionStorage.setItem('adminToken', pwd);
+                navigate('admin-dashboard');
+                fetchAdminData();
+            } else {
+                Swal.fire('Error', 'รหัสผ่านผิด', 'error');
             }
         }
 
-        function logoutAdmin() {
-            sessionStorage.removeItem('adminToken');
-            navigate('admin-login');
-        }
-
-        // 4. โหลดข้อมูล Dashboard
-        async function fetchAdminData() {
-            const pwd = sessionStorage.getItem('adminToken');
-            if(!pwd) { navigate('admin-login'); return; }
-
-            showLoading('กำลังดึงข้อมูลผู้สมัคร...');
-            try {
-                const res = await fetch(`${SCRIPT_URL}?action=getStudents&password=${encodeURIComponent(pwd)}`);
-                const data = await res.json();
-                hideLoading();
-
-                if(data.status === 'success') {
-                    allStudents = data.data;
-                    updateDashboardStats();
-                    renderTable();
-                } else {
-                    Swal.fire('ข้อผิดพลาด', 'เซสชั่นหมดอายุ', 'error');
-                    logoutAdmin();
-                }
-            } catch (error) {
-                hideLoading();
-                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถดึงข้อมูลได้', 'error');
-            }
-        }
-
-        function updateDashboardStats() {
-            const m1Count = allStudents.filter(s => s.level === 'ม.1').length;
-            const m4Count = allStudents.filter(s => s.level === 'ม.4').length;
-            
-            document.getElementById('stat-total').innerText = allStudents.length;
-            document.getElementById('stat-m1').innerText = m1Count;
-            document.getElementById('stat-m4').innerText = m4Count;
-        }
+        function logoutAdmin() { sessionStorage.removeItem('adminToken'); navigate('admin-login'); }
 
         function switchTab(level) {
             currentTab = level;
-            // Update UI Tab Styles
             document.querySelectorAll('.admin-tab').forEach(el => {
                 el.classList.remove('bg-white', 'shadow', 'text-primary');
                 el.classList.add('text-gray-500');
@@ -575,131 +473,57 @@
             const activeId = level === 'ม.1' ? 'tab-m1' : 'tab-m4';
             document.getElementById(activeId).classList.add('bg-white', 'shadow', 'text-primary');
             document.getElementById(activeId).classList.remove('text-gray-500');
-            
-            renderTable();
+            renderAdminTable();
         }
 
-        function renderTable() {
-            const tbody = document.getElementById('student-table-body');
-            const noDataMsg = document.getElementById('no-data-msg');
+        async function fetchAdminData() {
+            const pwd = sessionStorage.getItem('adminToken');
+            if(!pwd) { navigate('admin-login'); return; }
+            showLoading('โหลดข้อมูล...');
+            try {
+                const res = await fetch(`${SCRIPT_URL}?action=getEnrollmentData&password=${pwd}`);
+                const data = await res.json();
+                if(data.status === 'success') {
+                    allStudents = data.data;
+                    renderAdminTable();
+                }
+            } catch(e) { console.error(e); }
+            hideLoading();
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-table-body');
             tbody.innerHTML = '';
-
-            const filteredData = allStudents.filter(s => s.level === currentTab);
+            const filtered = allStudents.filter(s => s.level === currentTab);
             
-            if(filteredData.length === 0) {
-                noDataMsg.classList.remove('hidden');
-            } else {
-                noDataMsg.classList.add('hidden');
-                filteredData.forEach((student, index) => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-blue-50 cursor-pointer transition border-b";
-                    tr.onclick = () => showStudentDetails(student);
-                    
-                    // Format Date
-                    const d = new Date(student.timestamp);
-                    const dateStr = `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-
-                    tr.innerHTML = `
-                        <td class="p-4 text-gray-500">${dateStr}</td>
-                        <td class="p-4 font-medium text-gray-800">${student.prefix}${student.firstName} ${student.lastName}</td>
-                        <td class="p-4">${student.oldSchool}</td>
-                        <td class="p-4">${student.phone1}</td>
-                        <td class="p-4">${student.phone2 || '-'}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-        }
-
-        // 5. แสดงรายละเอียด Modal
-        function showStudentDetails(student) {
-            const content = document.getElementById('modal-content');
-            
-            // Helper เพื่อจัดกลุ่มแสดงข้อมูล
-            const row = (label, val) => `
-                <div class="flex border-b border-gray-100 py-2">
-                    <span class="w-1/3 text-gray-500 font-medium">${label}:</span>
-                    <span class="w-2/3 text-gray-800">${val || '-'}</span>
-                </div>
-            `;
-
-            content.innerHTML = `
-                <div class="mb-4">
-                    <span class="inline-block px-3 py-1 ${student.level==='ม.1' ? 'bg-blue-100 text-primary' : 'bg-pink-100 text-secondary'} rounded-full text-sm font-bold mb-2">สมัครเข้า: ${student.level}</span>
-                </div>
-                <h4 class="font-bold text-primary mb-2 mt-4">ข้อมูลส่วนตัว</h4>
-                ${row('เลขประจำตัวประชาชน', student.idCard)}
-                ${row('ชื่อ-นามสกุล', `${student.prefix}${student.firstName} ${student.lastName}`)}
-                ${row('ภูมิลำเนา', `ต.${student.subdistrict} อ.${student.district} จ.${student.province}`)}
+            filtered.forEach(s => {
+                const isEnrolled = s.status === 'มอบตัวแล้ว';
+                const statusBadge = isEnrolled ? `<span class="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-bold">มอบตัวแล้ว</span>` : `<span class="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs">ยังไม่มอบตัว</span>`;
                 
-                <h4 class="font-bold text-secondary mb-2 mt-6">ประวัติการศึกษา</h4>
-                ${row('จบจากโรงเรียน', student.oldSchool)}
-                ${row('จังหวัดโรงเรียนเดิม', student.oldSchoolProvince)}
-                
-                <h4 class="font-bold text-primary mb-2 mt-6">ที่อยู่ตามทะเบียนบ้าน</h4>
-                ${row('บ้านเลขที่', student.houseNo)}
-                ${row('หมู่ที่', student.moo)}
-                ${row('ซอย/ถนน', student.street)}
+                let docBtn = isEnrolled ? `<a href="${s.folderUrl}" target="_blank" class="text-blue-500 hover:underline text-xs"><i class="ph ph-folder"></i> โฟลเดอร์เอกสาร</a>` : '-';
+                let slipBtn = s.slipUrl ? `<a href="${s.slipUrl}" target="_blank" class="text-pink-500 hover:underline text-xs"><i class="ph ph-image"></i> ดูสลิป</a>` : '-';
 
-                <h4 class="font-bold text-secondary mb-2 mt-6">ข้อมูลผู้ปกครองและการติดต่อ</h4>
-                ${row('ชื่อบิดา', student.fatherName)}
-                ${row('ชื่อมารดา', student.motherName)}
-                ${row('ชื่อผู้ปกครอง', student.guardianName)}
-                ${row('เบอร์โทรศัพท์ 1', student.phone1)}
-                ${row('เบอร์โทรศัพท์ 2', student.phone2)}
-                ${row('เวลาที่สมัคร', new Date(student.timestamp).toLocaleString('th-TH'))}
-            `;
-            
-            document.getElementById('student-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('student-modal').classList.add('hidden');
-        }
-
-        // 6. ส่งออกข้อมูล (Export CSV)
-        function exportCSV(level) {
-            let dataToExport = level === 'all' ? allStudents : allStudents.filter(s => s.level === level);
-            
-            if(dataToExport.length === 0) {
-                Swal.fire('ไม่มีข้อมูล', `ไม่มีข้อมูลสำหรับ ${level} เพื่อส่งออก`, 'info');
-                return;
-            }
-
-            // กำหนด Header (ภาษาไทย)
-            const headers = [
-                'Timestamp', 'ระดับชั้น', 'เลขบัตรประชาชน', 'คำนำหน้า', 'ชื่อ', 'นามสกุล', 
-                'ตำบล', 'อำเภอ', 'จังหวัด', 'โรงเรียนเดิม', 'จังหวัดโรงเรียนเดิม',
-                'บ้านเลขที่', 'หมู่ที่', 'ถนน/ซอย', 'ชื่อบิดา', 'ชื่อมารดา', 
-                'ชื่อผู้ปกครอง', 'เบอร์โทร 1', 'เบอร์โทร 2'
-            ];
-
-            // สร้าง CSV string พร้อมป้องกันปัญหาภาษาไทย (BOM)
-            let csvContent = "\uFEFF" + headers.join(",") + "\n";
-
-            dataToExport.forEach(row => {
-                const values = [
-                    `"${new Date(row.timestamp).toLocaleString('th-TH')}"`,
-                    `"${row.level}"`, `"${row.idCard || ''}"`, `"${row.prefix}"`, `"${row.firstName}"`, `"${row.lastName}"`,
-                    `"${row.subdistrict}"`, `"${row.district}"`, `"${row.province}"`,
-                    `"${row.oldSchool}"`, `"${row.oldSchoolProvince}"`,
-                    `"${row.houseNo}"`, `"${row.moo}"`, `"${row.street || ''}"`,
-                    `"${row.fatherName || ''}"`, `"${row.motherName || ''}"`, `"${row.guardianName}"`,
-                    `"${row.phone1}"`, `"${row.phone2 || ''}"`
-                ];
-                csvContent += values.join(",") + "\n";
+                tbody.innerHTML += `
+                    <tr class="hover:bg-blue-50">
+                        <td class="p-4 font-medium">${s.prefix}${s.firstName} ${s.lastName}</td>
+                        <td class="p-4">${statusBadge}</td>
+                        <td class="p-4">${docBtn}</td>
+                        <td class="p-4"><div class="truncate w-32 text-xs" title="${s.payItems}">${s.payItems || '-'}</div></td>
+                        <td class="p-4">${slipBtn}</td>
+                    </tr>`;
             });
-
-            // ดาวน์โหลดไฟล์
+        }
+        
+        function exportEnrollmentCSV() {
+            let csvContent = "\uFEFF" + ['ระดับชั้น', 'ชื่อ-นามสกุล', 'สถานะ', 'รายการชำระ', 'ลิงก์เอกสาร', 'ลิงก์สลิป'].join(",") + "\n";
+            allStudents.filter(s => s.level === currentTab).forEach(row => {
+                csvContent += `"${row.level}","${row.prefix}${row.firstName} ${row.lastName}","${row.status}","${row.payItems}","${row.folderUrl}","${row.slipUrl}"\n`;
+            });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", `ข้อมูลรับสมัคร_${level}_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = `ข้อมูลมอบตัว_${currentTab}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
     </script>
 </body>
